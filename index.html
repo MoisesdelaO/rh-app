@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Cartas HR</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-bottom: 1px solid #e0e0e0;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e0e0e0;
+            background: #fafafa;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            color: #2196F3;
+            border-bottom-color: #2196F3;
+            background: white;
+        }
+
+        .tab-btn:hover {
+            background: white;
+        }
+
+        .content {
+            padding: 2rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 0.75rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .info-card {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 24px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .info-secondary {
+            font-size: 13px;
+            color: #999;
+            margin-top: 0.5rem;
+        }
+
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: #2196F3;
+            background: #f0f8ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #2196F3;
+            background: #e3f2fd;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .upload-subtext {
+            font-size: 12px;
+            color: #999;
+            margin-top: 0.5rem;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: #f5f5f5;
+        }
+
+        .btn-primary {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+
+        .btn-primary:hover {
+            background: #1976D2;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 10;
+        }
+
+        .suggestions.show {
+            display: block;
+        }
+
+        .suggestion-item {
+            padding: 0.75rem;
+            cursor: pointer;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .suggestion-item:hover {
+            background: #f5f5f5;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2196F3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+        }
+
+        .radio-item input[type="radio"] {
+            margin-right: 0.75rem;
+            cursor: pointer;
+        }
+
+        .radio-item label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 3px solid #2196F3;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #0c447c;
+            margin-bottom: 1rem;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border-left: 3px solid #ffc107;
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #856404;
+            margin-bottom: 1rem;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+
+        .sidebar {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            height: fit-content;
+        }
+
+        .sidebar .section-title {
+            font-size: 13px;
+        }
+
+        .sidebar .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab-btn {
+                flex: 0 1 calc(33.333% - 0.67rem);
+                padding: 0.75rem 0.5rem;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Generador de Cartas HR</h1>
+        <p class="subtitle">Consulado | FONACOT | Recomendación</p>
+    </header>
+
+    <div class="container">
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('gestion-hc')">📋 Gestión HC</button>
+            <button class="tab-btn" onclick="switchTab('generar-cartas')">✉️ Generar Cartas</button>
+            <button class="tab-btn" onclick="switchTab('historial-bajas')">🗂️ Historial Bajas</button>
+        </div>
+
+        <!-- CONTENIDO -->
+        <div class="content">
+            <!-- TAB 1: GESTIÓN HC -->
+            <div id="gestion-hc" class="tab-content active">
+                <h2 style="margin-bottom: 1.5rem; font-size: 18px;">Gestión del HC</h2>
+                
+                <div class="grid-2">
+                    <!-- INFO HC ACTUAL -->
+                    <div class="info-card">
+                        <div class="info-label">HC Actual Cargado</div>
+                        <div class="info-value" id="hc-records">-</div>
+                        <div class="info-secondary">Registros</div>
+
+                        <div style="margin-top: 1.5rem;">
+                            <div class="info-label">Última Actualización</div>
+                            <div class="info-value" style="font-size: 16px;" id="hc-lastupdate">-</div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem;">
+                            <div class="info-label">Almacenamiento</div>
+                            <div style="font-size: 14px; color: #333; margin-top: 0.5rem;">Google Sheets (Compartido)</div>
+                        </div>
+                    </div>
+
+                    <!-- UPLOAD HC -->
+                    <div>
+                        <div class="upload-area" id="upload-area" onclick="document.getElementById('hc-file').click()">
+                            <div class="upload-icon">📁</div>
+                            <div class="upload-text">Cargar HC Nuevo</div>
+                            <div class="upload-subtext">Arrastra tu Excel aquí o haz clic para seleccionar</div>
+                        </div>
+                        <input type="file" id="hc-file" accept=".xlsx,.xls,.csv" onchange="handleHCUpload(event)">
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <div id="upload-status" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- TAB 2: GENERAR CARTAS -->
+            <div id="generar-cartas" class="tab-content">
+                <h2 style="margin-bottom: 1.5rem; font-size: 18px;">Generar Cartas</h2>
+
+                <div class="grid-2">
+                    <!-- PANEL IZQUIERDO -->
+                    <div class="sidebar">
+                        <div class="section-title">Tipo de Carta</div>
+                        <div class="radio-group">
+                            <div class="radio-item">
+                                <input type="radio" id="tipo-consulado" name="letter-type" value="consulado" checked onchange="updateLetterPreview()">
+                                <label for="tipo-consulado">Consulado</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="tipo-fonacot" name="letter-type" value="fonacot" onchange="updateLetterPreview()">
+                                <label for="tipo-fonacot">FONACOT</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="tipo-recomendacion" name="letter-type" value="recomendacion" onchange="updateLetterPreview()">
+                                <label for="tipo-recomendacion">Recomendación</label>
+                            </div>
+                        </div>
+
+                        <div class="section-title" style="margin-top: 1.5rem;">Buscar Empleado</div>
+                        <div class="search-box">
+                            <input type="text" id="employee-search" placeholder="Nombre o ID..." oninput="searchEmployee(this.value)">
+                            <div class="suggestions" id="suggestions"></div>
+                        </div>
+
+                        <div class="info-box">
+                            📍 Si seleccionas "Recomendación", también busca entre empleados dados de baja.
+                        </div>
+                    </div>
+
+                    <!-- PANEL DERECHO -->
+                    <div>
+                        <div class="section-title">Datos del Empleado (Editable)</div>
+                        <div style="background: #f9f9f9; padding: 1.5rem; border-radius: 6px; border: 1px solid #e0e0e0;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div class="form-group">
+                                    <label>Nombre</label>
+                                    <input type="text" id="emp-nombre" placeholder="Nombre del empleado">
+                                </div>
+                                <div class="form-group">
+                                    <label>ID Empleado</label>
+                                    <input type="text" id="emp-id" placeholder="ID" disabled style="opacity: 0.6;">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha de Ingreso</label>
+                                    <input type="text" id="emp-fecha-ingreso" placeholder="Fecha">
+                                </div>
+                                <div class="form-group">
+                                    <label>Puesto</label>
+                                    <input type="text" id="emp-puesto" placeholder="Puesto">
+                                </div>
+                                <div class="form-group">
+                                    <label>Salario Mensual (Sd × 30.4)</label>
+                                    <input type="text" id="emp-salario" placeholder="Salario">
+                                </div>
+                                <div class="form-group">
+                                    <label>Domicilio</label>
+                                    <input type="text" id="emp-domicilio" placeholder="(Ingresa manualmente)">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Fecha de Carta</label>
+                                <input type="date" id="emp-fecha-carta" value="">
+                            </div>
+                            <p style="font-size: 11px; color: #999; margin-top: 0.75rem; font-style: italic;">💡 Los cambios aquí son temporales y solo afectarán esta descarga.</p>
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn" onclick="resetEmployeeData()">↻ Restaurar Original</button>
+                            <button class="btn btn-primary" onclick="downloadWord()">⬇️ Descargar Word</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: HISTORIAL BAJAS -->
+            <div id="historial-bajas" class="tab-content">
+                <h2 style="margin-bottom: 1.5rem; font-size: 18px;">Historial de Bajas</h2>
+
+                <!-- BAJAS AUTOMÁTICAS -->
+                <div class="section">
+                    <div class="section-title">⚙️ Bajas Automáticas</div>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 1rem;">Se detectan automáticamente al cargar un HC nuevo.</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="info-card">
+                            <div class="info-label">HC Cargado</div>
+                            <div class="info-value" id="bajas-hc-count">-</div>
+                            <div class="info-secondary">empleados activos</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Bajas Detectadas</div>
+                            <div class="info-value" id="bajas-detected">0</div>
+                            <div class="info-secondary">en este período</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Total Histórico</div>
+                            <div class="info-value" id="bajas-total">0</div>
+                            <div class="info-secondary">acumuladas</div>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn" onclick="showBajasTable()">📊 Ver Tabla</button>
+                        <button class="btn" onclick="exportBajasExcel()">📥 Exportar Excel</button>
+                        <button class="btn" onclick="exportBajasJSON()">💾 Descargar JSON</button>
+                    </div>
+                </div>
+
+                <!-- BAJAS MANUALES -->
+                <div class="section" style="margin-top: 2rem;">
+                    <div class="section-title">📁 Bajas Manuales (Cargar Archivo)</div>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 1rem;">Si tienes un archivo previo de bajas, cárgalo aquí.</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div class="upload-area" onclick="document.getElementById('bajas-excel').click()">
+                            <div style="font-size: 32px; margin-bottom: 0.5rem;">📊</div>
+                            <div class="upload-text">Cargar Excel de Bajas</div>
+                            <div class="upload-subtext">Archivo .xlsx o .csv</div>
+                        </div>
+                        <div class="upload-area" onclick="document.getElementById('bajas-json').click()">
+                            <div style="font-size: 32px; margin-bottom: 0.5rem;">💾</div>
+                            <div class="upload-text">Cargar JSON de Bajas</div>
+                            <div class="upload-subtext">Archivo .json exportado previamente</div>
+                        </div>
+                    </div>
+
+                    <input type="file" id="bajas-excel" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleBajasUpload(event)">
+                    <input type="file" id="bajas-json" accept=".json" style="display: none;" onchange="handleBajasJSONUpload(event)">
+
+                    <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: #e3f2fd; border-left: 3px solid #2196F3; border-radius: 4px; font-size: 12px; color: #0c447c;">
+                        💡 Al cargar un archivo, se fusionará con las bajas automáticas existentes.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // CONFIGURACIÓN
+        // ============================================================================
+        
+        // ⚠️ REEMPLAZA ESTO CON TU URL DE GOOGLE APPS SCRIPT
+        const API_URL = "REEMPLAZAR_CON_TU_URL_DEL_API";
+
+        let hcData = [];
+        let bajasData = [];
+        let currentEmployee = null;
+        let originalEmployee = null;
+
+        // ============================================================================
+        // FUNCIONES PRINCIPALES
+        // ============================================================================
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'generar-cartas') {
+                loadHCData();
+            } else if (tabName === 'historial-bajas') {
+                loadBajasData();
+            }
+        }
+
+        // ============================================================================
+        // CARGAR DATOS DESDE GOOGLE SHEETS
+        // ============================================================================
+
+        async function loadHCData() {
+            try {
+                const response = await fetch(`${API_URL}?action=getHC`);
+                const result = await response.json();
+                
+                if (result.error) {
+                    showAlert('Error al cargar HC: ' + result.error, 'error');
+                    return;
+                }
+
+                hcData = result.data || [];
+                document.getElementById('hc-records').textContent = hcData.length;
+                
+                // Cargar config para fecha
+                const configResponse = await fetch(`${API_URL}?action=getConfig`);
+                const configResult = await configResponse.json();
+                if (configResult.config) {
+                    const lastUpdate = configResult.config.HC_LastUpdate;
+                    if (lastUpdate) {
+                        document.getElementById('hc-lastupdate').textContent = new Date(lastUpdate).toLocaleDateString('es-MX');
+                    }
+                }
+            } catch (e) {
+                showAlert('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function loadBajasData() {
+            try {
+                const response = await fetch(`${API_URL}?action=getBajas`);
+                const result = await response.json();
+                
+                if (result.error) {
+                    showAlert('Error al cargar bajas: ' + result.error, 'error');
+                    return;
+                }
+
+                bajasData = result.data || [];
+                document.getElementById('bajas-total').textContent = bajasData.length;
+                document.getElementById('bajas-hc-count').textContent = hcData.length;
+            } catch (e) {
+                showAlert('Error: ' + e.message, 'error');
+            }
+        }
+
+        // ============================================================================
+        // UPLOAD HC
+        // ============================================================================
+
+        async function handleHCUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const statusDiv = document.getElementById('upload-status');
+                    statusDiv.innerHTML = '<div class="alert"><span class="loading"></span> Procesando HC...</div>';
+                    statusDiv.style.display = 'block';
+
+                    const data = e.target.result;
+                    const parsed = parseExcel(data);
+
+                    const payload = {
+                        headers: parsed.headers,
+                        data: parsed.data
+                    };
+
+                    const response = await fetch(API_URL + '?action=uploadHC', {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.error) {
+                        statusDiv.innerHTML = `<div class="alert error">❌ Error: ${result.error}</div>`;
+                    } else {
+                        statusDiv.innerHTML = `<div class="alert success">✅ HC actualizado correctamente. Bajas detectadas: ${result.bajasDetectadas}</div>`;
+                        loadHCData();
+                        document.getElementById('hc-file').value = '';
+                    }
+                } catch (error) {
+                    document.getElementById('upload-status').innerHTML = `<div class="alert error">❌ Error: ${error.message}</div>`;
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ============================================================================
+        // PARSE EXCEL (Librería básica)
+        // ============================================================================
+
+        function parseExcel(arrayBuffer) {
+            // Para simplificar, asumimos que es un CSV o Excel simple
+            // Usaremos una librería externa (SheetJS) que debes incluir
+            // Por ahora, retornamos estructura básica
+            return {
+                headers: ["Empl ID", "Nombre preferido", "Fecha de contratación", "Antigüedad", 
+                         "ID de gerente", "Manager Name", "ÁREA", "Job Category", 
+                         "Título de actividad", "Grupo de pago", "M.O.", "Género", 
+                         "Fecha de nacimiento", "Edad", "Mexico - IMSS", "Salario Diario"],
+                data: []
+            };
+        }
+
+        // ============================================================================
+        // BÚSQUEDA DE EMPLEADOS
+        // ============================================================================
+
+        function searchEmployee(query) {
+            const suggestionsDiv = document.getElementById('suggestions');
+            
+            if (!query || query.length < 2) {
+                suggestionsDiv.classList.remove('show');
+                return;
+            }
+
+            const filtered = hcData.filter(emp => {
+                const nombre = String(emp["Nombre preferido"] || "").toLowerCase();
+                const id = String(emp["Empl ID"] || "").toLowerCase();
+                return nombre.includes(query.toLowerCase()) || id.includes(query.toLowerCase());
+            });
+
+            if (filtered.length === 0) {
+                suggestionsDiv.classList.remove('show');
+                return;
+            }
+
+            suggestionsDiv.innerHTML = filtered.slice(0, 5).map((emp, idx) => `
+                <div class="suggestion-item" onclick="selectEmployee(${idx})">
+                    ${emp["Nombre preferido"]} (ID: ${emp["Empl ID"]})
+                </div>
+            `).join('');
+
+            suggestionsDiv.classList.add('show');
+            currentEmployee = filtered[0];
+        }
+
+        function selectEmployee(index) {
+            const filtered = hcData.filter(emp => {
+                const nombre = String(emp["Nombre preferido"] || "").toLowerCase();
+                const query = document.getElementById('employee-search').value.toLowerCase();
+                return nombre.includes(query);
+            });
+
+            if (filtered[index]) {
+                currentEmployee = JSON.parse(JSON.stringify(filtered[index]));
+                originalEmployee = JSON.parse(JSON.stringify(filtered[index]));
+                populateEmployeeForm();
+                document.getElementById('suggestions').classList.remove('show');
+            }
+        }
+
+        function populateEmployeeForm() {
+            if (!currentEmployee) return;
+
+            document.getElementById('emp-nombre').value = currentEmployee["Nombre preferido"] || "";
+            document.getElementById('emp-id').value = currentEmployee["Empl ID"] || "";
+            document.getElementById('emp-fecha-ingreso').value = formatDate(currentEmployee["Fecha de contratación"]);
+            document.getElementById('emp-puesto').value = currentEmployee["Título de actividad"] || "";
+            
+            const salarioDiario = parseFloat(currentEmployee["Salario Diario"] || 0);
+            const salarioMensual = (salarioDiario * 30.4).toFixed(2);
+            document.getElementById('emp-salario').value = `$${salarioMensual}`;
+
+            // Fecha de carta = hoy
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('emp-fecha-carta').value = today;
+        }
+
+        function resetEmployeeData() {
+            if (originalEmployee) {
+                currentEmployee = JSON.parse(JSON.stringify(originalEmployee));
+                populateEmployeeForm();
+                showAlert('Datos restaurados al original', 'success');
+            }
+        }
+
+        // ============================================================================
+        // GENERAR Y DESCARGAR WORD
+        // ============================================================================
+
+        async function downloadWord() {
+            if (!currentEmployee) {
+                showAlert('Selecciona un empleado primero', 'error');
+                return;
+            }
+
+            try {
+                const letterType = document.querySelector('input[name="letter-type"]:checked').value;
+                const letterContent = generateLetterContent(letterType);
+                
+                // Crear Word doc (usaremos docx library)
+                // Por ahora, descargamos como texto
+                const docContent = generateDocx(letterContent);
+                downloadFile(docContent, `Carta_${letterType}_${currentEmployee["Empl ID"]}.docx`);
+
+                showAlert('Carta descargada correctamente', 'success');
+            } catch (e) {
+                showAlert('Error al generar carta: ' + e.message, 'error');
+            }
+        }
+
+        function generateLetterContent(type) {
+            const nombre = document.getElementById('emp-nombre').value;
+            const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
+            const puesto = document.getElementById('emp-puesto').value;
+            const salario = document.getElementById('emp-salario').value;
+            const domicilio = document.getElementById('emp-domicilio').value;
+            const fechaCarta = document.getElementById('emp-fecha-carta').value;
+
+            const fechaFormato = formatDateForLetter(fechaCarta);
+
+            if (type === 'consulado') {
+                return `
+JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+
+Torreón, Coahuila a ${fechaFormato}
+
+Consulado Americano
+Presente
+
+Por medio de la presente hacemos constar que ${nombre} labora en JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V. desde el ${fechaIngreso}.
+
+${nombre} actualmente desempeña el puesto de ${puesto}, percibiendo un sueldo mensual de ${salario} más prestaciones tales como: aguinaldo, prima vacacional, bonos, etc.
+
+Así mismo hacemos constar que ${nombre} tiene su domicilio en: ${domicilio} en Torreón, Coahuila.
+
+Se extiende la presente a petición del interesado(a) para los fines que le convengan.
+
+Atentamente,
+
+Moises de la O Murillo
+Generalista de Recursos Humanos
+                `;
+            } else if (type === 'fonacot') {
+                return `
+JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+
+Torreón, Coahuila a ${fechaFormato}
+
+ATENCIÓN FONACOT
+Presente
+
+Por medio de la presente hacemos constar que ${nombre} labora desde el ${fechaIngreso} en el puesto de ${puesto} en la empresa JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+
+Actualmente tiene un salario bruto mensual de ${salario} más 13% de fondo de ahorro con tope de ley, 35 días de aguinaldo y prima vacacional al 100% con dos días adicionales a los de la ley.
+
+Así mismo les informo que el sueldo mensual de nuestros empleados es depositado de manera Semanal.
+
+Se extiende la presente a petición del interesado(a) para los fines que le convengan.
+
+Atentamente,
+
+Moises de la O Murillo
+Generalista de Recursos Humanos
+                `;
+            } else { // recomendacion
+                return `
+JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+
+Torreón, Coahuila a ${fechaFormato}
+
+A quien corresponda
+Presente
+
+Por medio de la presente hacemos constar que ${nombre} laboró en JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V. desde el ${fechaIngreso}.
+
+${nombre} tuvo como último puesto ${puesto} bajo un horario rotativo quincenal.
+
+Se extiende la presente a petición del interesado(a) para los fines que le convengan.
+
+Atentamente,
+
+Moises de la O Murillo
+Generalista de Recursos Humanos
+                `;
+            }
+        }
+
+        // ============================================================================
+        // FUNCIONES AUXILIARES
+        // ============================================================================
+
+        function formatDate(dateInput) {
+            if (!dateInput) return "";
+            const date = new Date(dateInput);
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('es-MX', options);
+        }
+
+        function formatDateForLetter(dateStr) {
+            if (!dateStr) return new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+            const date = new Date(dateStr);
+            const day = date.getDate();
+            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} de ${month}, ${year}`;
+        }
+
+        function generateDocx(content) {
+            // Placeholder: en producción usarías docx library
+            return content;
+        }
+
+        function downloadFile(content, filename) {
+            const blob = new Blob([content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function showAlert(message, type = 'info') {
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            document.body.insertBefore(alert, document.body.firstChild);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        function exportBajasExcel() {
+            // Placeholder
+            showAlert('Funcionalidad en desarrollo', 'error');
+        }
+
+        function exportBajasJSON() {
+            if (bajasData.length === 0) {
+                showAlert('No hay bajas para exportar', 'error');
+                return;
+            }
+
+            const json = JSON.stringify(bajasData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bajas_' + new Date().toISOString().split('T')[0] + '.json';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function showBajasTable() {
+            showAlert('Vista de tabla en desarrollo', 'error');
+        }
+
+        function handleBajasUpload(event) {
+            showAlert('Carga de bajas en desarrollo', 'error');
+        }
+
+        function handleBajasJSONUpload(event) {
+            showAlert('Carga de JSON en desarrollo', 'error');
+        }
+
+        function updateLetterPreview() {
+            // Placeholder
+        }
+
+        // ============================================================================
+        // INICIALIZACIÓN
+        // ============================================================================
+
+        window.addEventListener('load', () => {
+            // Establecer fecha de hoy
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('emp-fecha-carta').value = today;
+
+            // Cargar datos iniciales
+            loadHCData();
+        });
+
+        // Drag and drop para HC
+        const uploadArea = document.getElementById('upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('hc-file').files = files;
+                handleHCUpload({ target: { files: files } });
+            }
+        });
+    </script>
+</body>
+</html>
