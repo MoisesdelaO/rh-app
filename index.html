@@ -596,13 +596,13 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <script>
         // ============================================================================
-        // CONFIGURACIÓN
+        // CONFIGURACIÓN - API URL ACTUALIZADO
         // ============================================================================
         
-        // ⚠️ REEMPLAZA ESTO CON TU URL DE GOOGLE APPS SCRIPT
-        const API_URL = "REEMPLAZAR_CON_TU_URL_DEL_API";
+        const API_URL = "https://script.google.com/macros/s/AKfycbz_HMry8guU7gysTfUC6EJw1Xu3lrSuKaXKbbZhF8ZTwR7Vnt_WdoGkB9n-ejGVKUJ4/exec";
 
         let hcData = [];
         let bajasData = [];
@@ -692,11 +692,19 @@
                     statusDiv.style.display = 'block';
 
                     const data = e.target.result;
-                    const parsed = parseExcel(data);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const parsed = XLSX.utils.sheet_to_json(worksheet);
 
+                    if (parsed.length === 0) {
+                        statusDiv.innerHTML = '<div class="alert error">❌ El archivo está vacío</div>';
+                        return;
+                    }
+
+                    const headers = Object.keys(parsed[0]);
                     const payload = {
-                        headers: parsed.headers,
-                        data: parsed.data
+                        headers: headers,
+                        data: parsed
                     };
 
                     const response = await fetch(API_URL + '?action=uploadHC', {
@@ -719,23 +727,6 @@
             };
 
             reader.readAsArrayBuffer(file);
-        }
-
-        // ============================================================================
-        // PARSE EXCEL (Librería básica)
-        // ============================================================================
-
-        function parseExcel(arrayBuffer) {
-            // Para simplificar, asumimos que es un CSV o Excel simple
-            // Usaremos una librería externa (SheetJS) que debes incluir
-            // Por ahora, retornamos estructura básica
-            return {
-                headers: ["Empl ID", "Nombre preferido", "Fecha de contratación", "Antigüedad", 
-                         "ID de gerente", "Manager Name", "ÁREA", "Job Category", 
-                         "Título de actividad", "Grupo de pago", "M.O.", "Género", 
-                         "Fecha de nacimiento", "Edad", "Mexico - IMSS", "Salario Diario"],
-                data: []
-            };
         }
 
         // ============================================================================
@@ -762,27 +753,25 @@
             }
 
             suggestionsDiv.innerHTML = filtered.slice(0, 5).map((emp, idx) => `
-                <div class="suggestion-item" onclick="selectEmployee(${idx})">
-                    ${emp["Nombre preferido"]} (ID: ${emp["Empl ID"]})
-                </div>
+                <div class="suggestion-item" onclick="selectEmployee(this.innerText)">${emp["Nombre preferido"]} (ID: ${emp["Empl ID"]})</div>
             `).join('');
 
             suggestionsDiv.classList.add('show');
-            currentEmployee = filtered[0];
         }
 
-        function selectEmployee(index) {
-            const filtered = hcData.filter(emp => {
-                const nombre = String(emp["Nombre preferido"] || "").toLowerCase();
-                const query = document.getElementById('employee-search').value.toLowerCase();
-                return nombre.includes(query);
-            });
+        function selectEmployee(text) {
+            const parts = text.split(' (ID: ');
+            const nombre = parts[0];
+            const id = parts[1].replace(')', '');
 
-            if (filtered[index]) {
-                currentEmployee = JSON.parse(JSON.stringify(filtered[index]));
-                originalEmployee = JSON.parse(JSON.stringify(filtered[index]));
+            const filtered = hcData.filter(emp => emp["Nombre preferido"] === nombre && emp["Empl ID"] == id);
+
+            if (filtered.length > 0) {
+                currentEmployee = JSON.parse(JSON.stringify(filtered[0]));
+                originalEmployee = JSON.parse(JSON.stringify(filtered[0]));
                 populateEmployeeForm();
                 document.getElementById('suggestions').classList.remove('show');
+                document.getElementById('employee-search').value = nombre;
             }
         }
 
@@ -798,7 +787,6 @@
             const salarioMensual = (salarioDiario * 30.4).toFixed(2);
             document.getElementById('emp-salario').value = `$${salarioMensual}`;
 
-            // Fecha de carta = hoy
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('emp-fecha-carta').value = today;
         }
@@ -825,10 +813,13 @@
                 const letterType = document.querySelector('input[name="letter-type"]:checked').value;
                 const letterContent = generateLetterContent(letterType);
                 
-                // Crear Word doc (usaremos docx library)
-                // Por ahora, descargamos como texto
-                const docContent = generateDocx(letterContent);
-                downloadFile(docContent, `Carta_${letterType}_${currentEmployee["Empl ID"]}.docx`);
+                const blob = new Blob([letterContent], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Carta_${letterType}_${currentEmployee["Empl ID"]}.txt`;
+                a.click();
+                window.URL.revokeObjectURL(url);
 
                 showAlert('Carta descargada correctamente', 'success');
             } catch (e) {
@@ -890,7 +881,7 @@ Atentamente,
 Moises de la O Murillo
 Generalista de Recursos Humanos
                 `;
-            } else { // recomendacion
+            } else {
                 return `
 JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
@@ -934,21 +925,6 @@ Generalista de Recursos Humanos
             return `${day} de ${month}, ${year}`;
         }
 
-        function generateDocx(content) {
-            // Placeholder: en producción usarías docx library
-            return content;
-        }
-
-        function downloadFile(content, filename) {
-            const blob = new Blob([content], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
-
         function showAlert(message, type = 'info') {
             const alert = document.createElement('div');
             alert.className = `alert ${type}`;
@@ -958,8 +934,15 @@ Generalista de Recursos Humanos
         }
 
         function exportBajasExcel() {
-            // Placeholder
-            showAlert('Funcionalidad en desarrollo', 'error');
+            if (bajasData.length === 0) {
+                showAlert('No hay bajas para exportar', 'error');
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(bajasData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Bajas");
+            XLSX.writeFile(wb, 'bajas_' + new Date().toISOString().split('T')[0] + '.xlsx');
         }
 
         function exportBajasJSON() {
@@ -999,15 +982,11 @@ Generalista de Recursos Humanos
         // ============================================================================
 
         window.addEventListener('load', () => {
-            // Establecer fecha de hoy
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('emp-fecha-carta').value = today;
-
-            // Cargar datos iniciales
             loadHCData();
         });
 
-        // Drag and drop para HC
         const uploadArea = document.getElementById('upload-area');
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
