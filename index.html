@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Generador de Cartas HR</title>
+    <!-- XLSX para export bajas -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Docx para generar Word -->
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
     <style>
         * {
             margin: 0;
@@ -205,6 +209,7 @@
             display: flex;
             gap: 0.75rem;
             margin-top: 1.5rem;
+            flex-wrap: wrap;
         }
 
         .search-box {
@@ -257,29 +262,34 @@
         }
 
         .form-group {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .form-group label {
             display: block;
-            font-size: 12px;
-            color: #666;
+            font-size: 13px;
             font-weight: 500;
             margin-bottom: 0.5rem;
+            color: #666;
         }
 
         .form-group input,
-        .form-group select {
+        .form-group textarea {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #ddd;
             border-radius: 6px;
-            font-size: 13px;
+            font-size: 14px;
             font-family: inherit;
         }
 
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
         .form-group input:focus,
-        .form-group select:focus {
+        .form-group textarea:focus {
             outline: none;
             border-color: #2196F3;
             box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
@@ -287,85 +297,66 @@
 
         .radio-group {
             display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .radio-item {
             display: flex;
             align-items: center;
-            padding: 0.5rem;
+            gap: 0.5rem;
         }
 
         .radio-item input[type="radio"] {
-            margin-right: 0.75rem;
             cursor: pointer;
         }
 
         .radio-item label {
             margin: 0;
             cursor: pointer;
-            font-size: 14px;
-        }
-
-        .info-box {
-            background: #e3f2fd;
-            border-left: 3px solid #2196F3;
-            padding: 0.75rem 1rem;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #0c447c;
-            margin-bottom: 1rem;
         }
 
         .alert {
-            background: #fff3cd;
-            border-left: 3px solid #ffc107;
-            padding: 0.75rem 1rem;
-            border-radius: 4px;
-            font-size: 12px;
-            color: #856404;
+            padding: 1rem;
+            border-radius: 6px;
             margin-bottom: 1rem;
+            font-size: 14px;
+            animation: slideDown 0.3s ease;
         }
 
-        .alert.error {
-            background: #f8d7da;
-            border-left-color: #dc3545;
-            color: #721c24;
+        .alert.info {
+            background: #e3f2fd;
+            color: #1976D2;
+            border-left: 4px solid #1976D2;
         }
 
         .alert.success {
-            background: #d4edda;
-            border-left-color: #28a745;
-            color: #155724;
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
         }
 
-        .sidebar {
-            background: #f9f9f9;
-            padding: 1.5rem;
-            border-radius: 6px;
-            border: 1px solid #e0e0e0;
-            height: fit-content;
+        .alert.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border-left: 4px solid #d32f2f;
         }
 
-        .sidebar .section-title {
-            font-size: 13px;
+        .alert.warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border-left: 4px solid #f57c00;
         }
 
-        .sidebar .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            color: #999;
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 1rem;
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .loading {
@@ -383,19 +374,54 @@
             100% { transform: rotate(360deg); }
         }
 
+        .preview-section {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            margin-top: 2rem;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-badge.active {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .status-badge.pending {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
         @media (max-width: 768px) {
             .grid-2 {
                 grid-template-columns: 1fr;
             }
 
-            .tabs {
-                flex-wrap: wrap;
+            .radio-group {
+                flex-direction: column;
+                gap: 1rem;
             }
 
-            .tab-btn {
-                flex: 0 1 calc(33.333% - 0.67rem);
-                padding: 0.75rem 0.5rem;
-                font-size: 13px;
+            h1 {
+                font-size: 20px;
+            }
+
+            .container {
+                margin: 1rem;
             }
         }
     </style>
@@ -403,206 +429,162 @@
 <body>
     <header>
         <h1>Generador de Cartas HR</h1>
-        <p class="subtitle">Consulado | FONACOT | Recomendación</p>
+        <p class="subtitle">Gestión automática de cartas: Consulado, FONACOT y Recomendación</p>
     </header>
 
     <div class="container">
-        <!-- TABS -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('gestion-hc')">📋 Gestión HC</button>
-            <button class="tab-btn" onclick="switchTab('generar-cartas')">✉️ Generar Cartas</button>
-            <button class="tab-btn" onclick="switchTab('historial-bajas')">🗂️ Historial Bajas</button>
+            <button class="tab-btn active" onclick="switchTab('datos-hc')">HC Data</button>
+            <button class="tab-btn" onclick="switchTab('generar-cartas')">Generar Cartas</button>
+            <button class="tab-btn" onclick="switchTab('historial-bajas')">Historial Bajas</button>
         </div>
 
-        <!-- CONTENIDO -->
-        <div class="content">
-            <!-- TAB 1: GESTIÓN HC -->
-            <div id="gestion-hc" class="tab-content active">
-                <h2 style="margin-bottom: 1.5rem; font-size: 18px;">Gestión del HC</h2>
-                
-                <div class="grid-2">
-                    <!-- INFO HC ACTUAL -->
-                    <div class="info-card">
-                        <div class="info-label">HC Actual Cargado</div>
-                        <div class="info-value" id="hc-records">-</div>
-                        <div class="info-secondary">Registros</div>
-
-                        <div style="margin-top: 1.5rem;">
-                            <div class="info-label">Última Actualización</div>
-                            <div class="info-value" style="font-size: 16px;" id="hc-lastupdate">-</div>
-                        </div>
-
-                        <div style="margin-top: 1.5rem;">
-                            <div class="info-label">Almacenamiento</div>
-                            <div style="font-size: 14px; color: #333; margin-top: 0.5rem;">Google Sheets (Compartido)</div>
-                        </div>
-                    </div>
-
-                    <!-- UPLOAD HC -->
-                    <div>
-                        <div class="upload-area" id="upload-area" onclick="document.getElementById('hc-file').click()">
-                            <div class="upload-icon">📁</div>
-                            <div class="upload-text">Cargar HC Nuevo</div>
-                            <div class="upload-subtext">Arrastra tu Excel aquí o haz clic para seleccionar</div>
-                        </div>
-                        <input type="file" id="hc-file" accept=".xlsx,.xls,.csv" onchange="handleHCUpload(event)">
-                    </div>
-                </div>
-
-                <div style="margin-top: 2rem;">
-                    <div id="upload-status" style="display: none;"></div>
-                </div>
-            </div>
-
-            <!-- TAB 2: GENERAR CARTAS -->
-            <div id="generar-cartas" class="tab-content">
-                <h2 style="margin-bottom: 1.5rem; font-size: 18px;">Generar Cartas</h2>
-
-                <div class="grid-2">
-                    <!-- PANEL IZQUIERDO -->
-                    <div class="sidebar">
-                        <div class="section-title">Tipo de Carta</div>
-                        <div class="radio-group">
-                            <div class="radio-item">
-                                <input type="radio" id="tipo-consulado" name="letter-type" value="consulado" checked onchange="updateLetterPreview()">
-                                <label for="tipo-consulado">Consulado</label>
-                            </div>
-                            <div class="radio-item">
-                                <input type="radio" id="tipo-fonacot" name="letter-type" value="fonacot" onchange="updateLetterPreview()">
-                                <label for="tipo-fonacot">FONACOT</label>
-                            </div>
-                            <div class="radio-item">
-                                <input type="radio" id="tipo-recomendacion" name="letter-type" value="recomendacion" onchange="updateLetterPreview()">
-                                <label for="tipo-recomendacion">Recomendación</label>
-                            </div>
-                        </div>
-
-                        <div class="section-title" style="margin-top: 1.5rem;">Buscar Empleado</div>
-                        <div class="search-box">
-                            <input type="text" id="employee-search" placeholder="Nombre o ID..." oninput="searchEmployee(this.value)">
-                            <div class="suggestions" id="suggestions"></div>
-                        </div>
-
-                        <div class="info-box">
-                            📍 Si seleccionas "Recomendación", también busca entre empleados dados de baja.
-                        </div>
-                    </div>
-
-                    <!-- PANEL DERECHO -->
-                    <div>
-                        <div class="section-title">Datos del Empleado (Editable)</div>
-                        <div style="background: #f9f9f9; padding: 1.5rem; border-radius: 6px; border: 1px solid #e0e0e0;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                                <div class="form-group">
-                                    <label>Nombre</label>
-                                    <input type="text" id="emp-nombre" placeholder="Nombre del empleado">
-                                </div>
-                                <div class="form-group">
-                                    <label>ID Empleado</label>
-                                    <input type="text" id="emp-id" placeholder="ID" disabled style="opacity: 0.6;">
-                                </div>
-                                <div class="form-group">
-                                    <label>Fecha de Ingreso</label>
-                                    <input type="text" id="emp-fecha-ingreso" placeholder="Fecha">
-                                </div>
-                                <div class="form-group">
-                                    <label>Puesto</label>
-                                    <input type="text" id="emp-puesto" placeholder="Puesto">
-                                </div>
-                                <div class="form-group">
-                                    <label>Salario Mensual (Sd × 30.4)</label>
-                                    <input type="text" id="emp-salario" placeholder="Salario">
-                                </div>
-                                <div class="form-group">
-                                    <label>Domicilio</label>
-                                    <input type="text" id="emp-domicilio" placeholder="(Ingresa manualmente)">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Fecha de Carta</label>
-                                <input type="date" id="emp-fecha-carta" value="">
-                            </div>
-                            <p style="font-size: 11px; color: #999; margin-top: 0.75rem; font-style: italic;">💡 Los cambios aquí son temporales y solo afectarán esta descarga.</p>
-                        </div>
-
-                        <div class="btn-group">
-                            <button class="btn" onclick="resetEmployeeData()">↻ Restaurar Original</button>
-                            <button class="btn btn-primary" onclick="downloadWord()">⬇️ Descargar Word</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3: HISTORIAL BAJAS -->
-            <div id="historial-bajas" class="tab-content">
-                <h2 style="margin-bottom: 1.5rem; font-size: 18px;">Historial de Bajas</h2>
-
-                <!-- BAJAS AUTOMÁTICAS -->
+        <!-- TAB 1: HC DATA -->
+        <div id="datos-hc" class="tab-content active">
+            <div class="content">
                 <div class="section">
-                    <div class="section-title">⚙️ Bajas Automáticas</div>
-                    <p style="font-size: 13px; color: #666; margin-bottom: 1rem;">Se detectan automáticamente al cargar un HC nuevo.</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                        <div class="info-card">
-                            <div class="info-label">HC Cargado</div>
-                            <div class="info-value" id="bajas-hc-count">-</div>
-                            <div class="info-secondary">empleados activos</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Bajas Detectadas</div>
-                            <div class="info-value" id="bajas-detected">0</div>
-                            <div class="info-secondary">en este período</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Total Histórico</div>
-                            <div class="info-value" id="bajas-total">0</div>
-                            <div class="info-secondary">acumuladas</div>
-                        </div>
+                    <h2 class="section-title">Cargar datos HC desde Excel</h2>
+                    <div id="upload-area" class="upload-area">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">Arrastra tu archivo Excel aquí o haz click para seleccionar</div>
+                        <div class="upload-subtext">Formatos soportados: .xlsx, .xls, .csv</div>
+                        <input type="file" id="hc-file" accept=".xlsx,.xls,.csv">
                     </div>
-
                     <div class="btn-group">
-                        <button class="btn" onclick="showBajasTable()">📊 Ver Tabla</button>
-                        <button class="btn" onclick="exportBajasExcel()">📥 Exportar Excel</button>
-                        <button class="btn" onclick="exportBajasJSON()">💾 Descargar JSON</button>
+                        <button class="btn btn-primary" onclick="triggerFileUpload()">Seleccionar archivo</button>
+                        <button class="btn" onclick="loadHCDataFromSheets()" id="sync-btn">Sincronizar desde Google Sheets</button>
                     </div>
                 </div>
 
-                <!-- BAJAS MANUALES -->
-                <div class="section" style="margin-top: 2rem;">
-                    <div class="section-title">📁 Bajas Manuales (Cargar Archivo)</div>
-                    <p style="font-size: 13px; color: #666; margin-bottom: 1rem;">Si tienes un archivo previo de bajas, cárgalo aquí.</p>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                        <div class="upload-area" onclick="document.getElementById('bajas-excel').click()">
-                            <div style="font-size: 32px; margin-bottom: 0.5rem;">📊</div>
-                            <div class="upload-text">Cargar Excel de Bajas</div>
-                            <div class="upload-subtext">Archivo .xlsx o .csv</div>
+                <div class="section">
+                    <h2 class="section-title">Estado HC</h2>
+                    <div class="grid-2">
+                        <div class="info-card">
+                            <div class="info-label">Total empleados</div>
+                            <div class="info-value" id="total-emps">0</div>
                         </div>
-                        <div class="upload-area" onclick="document.getElementById('bajas-json').click()">
-                            <div style="font-size: 32px; margin-bottom: 0.5rem;">💾</div>
-                            <div class="upload-text">Cargar JSON de Bajas</div>
-                            <div class="upload-subtext">Archivo .json exportado previamente</div>
+                        <div class="info-card">
+                            <div class="info-label">Última actualización</div>
+                            <div class="info-value" style="font-size: 16px;" id="last-update">-</div>
                         </div>
-                    </div>
-
-                    <input type="file" id="bajas-excel" accept=".xlsx,.xls,.csv" style="display: none;" onchange="handleBajasUpload(event)">
-                    <input type="file" id="bajas-json" accept=".json" style="display: none;" onchange="handleBajasJSONUpload(event)">
-
-                    <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: #e3f2fd; border-left: 3px solid #2196F3; border-radius: 4px; font-size: 12px; color: #0c447c;">
-                        💡 Al cargar un archivo, se fusionará con las bajas automáticas existentes.
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: GENERAR CARTAS -->
+        <div id="generar-cartas" class="tab-content">
+            <div class="content">
+                <div class="section">
+                    <h2 class="section-title">Seleccionar empleado</h2>
+                    <div class="search-box">
+                        <input type="text" id="employee-search" placeholder="Busca por nombre o ID..." onkeyup="filterEmployees()">
+                        <div id="suggestions" class="suggestions"></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Datos del empleado</h2>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="emp-nombre" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>ID Empleado</label>
+                            <input type="text" id="emp-id" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de ingreso</label>
+                            <input type="text" id="emp-fecha-ingreso" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Puesto</label>
+                            <input type="text" id="emp-puesto" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Salario mensual</label>
+                            <input type="text" id="emp-salario" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Domicilio (editable)</label>
+                            <input type="text" id="emp-domicilio" placeholder="Ingresa el domicilio">
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha de carta</label>
+                            <input type="date" id="emp-fecha-carta">
+                        </div>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="resetEmployeeData()">Restaurar datos</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Tipo de carta</h2>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="consulado" name="letter-type" value="consulado" checked>
+                            <label for="consulado">Consulado</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="fonacot" name="letter-type" value="fonacot">
+                            <label for="fonacot">FONACOT</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="recomendacion" name="letter-type" value="recomendacion">
+                            <label for="recomendacion">Recomendación</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Vista previa</h2>
+                    <div class="preview-section" id="preview-text">
+                        Selecciona un empleado y tipo de carta para ver la vista previa
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="downloadWord()">Descargar como Word</button>
+                    <button class="btn" onclick="updateLetterPreview()">Actualizar vista previa</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: HISTORIAL BAJAS -->
+        <div id="historial-bajas" class="tab-content">
+            <div class="content">
+                <div class="section">
+                    <h2 class="section-title">Historial de bajas</h2>
+                    <div id="bajas-status" class="info-card" style="margin-bottom: 1rem;">
+                        <div class="info-label">Total bajas registradas</div>
+                        <div class="info-value" id="total-bajas">0</div>
+                    </div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="exportBajasExcel()">Exportar como Excel</button>
+                    <button class="btn" onclick="exportBajasJSON()">Exportar como JSON</button>
+                    <button class="btn" onclick="showBajasTable()">Ver tabla</button>
+                </div>
+
+                <div id="bajas-table-container" style="margin-top: 2rem;"></div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <script>
         // ============================================================================
-        // CONFIGURACIÓN - API URL ACTUALIZADO
+        // CONFIGURACIÓN
         // ============================================================================
         
-        const API_URL = "https://script.google.com/macros/s/AKfycbz_HMry8guU7gysTfUC6EJw1Xu3lrSuKaXKbbZhF8ZTwR7Vnt_WdoGkB9n-ejGVKUJ4/exec";
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxkkRb91QKw-c8uyseOk2nRuj1vUWb6x1RRGXQlYpKVzwu5WT6kmupHUkmMO_2zpk3X/exec";
+        const SHEET_ID = "1maoy6UAczN1eCqfQeQyw89IW0JB_Ex0PLQgCVvGc3tM";
+
+        // ============================================================================
+        // VARIABLES GLOBALES
+        // ============================================================================
 
         let hcData = [];
         let bajasData = [];
@@ -610,7 +592,7 @@
         let originalEmployee = null;
 
         // ============================================================================
-        // FUNCIONES PRINCIPALES
+        // FUNCIONES TAB NAVIGATION
         // ============================================================================
 
         function switchTab(tabName) {
@@ -619,110 +601,97 @@
             
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
-
-            if (tabName === 'generar-cartas') {
-                loadHCData();
-            } else if (tabName === 'historial-bajas') {
-                loadBajasData();
-            }
         }
 
         // ============================================================================
-        // CARGAR DATOS DESDE GOOGLE SHEETS
+        // CARGAR HC DATA
         // ============================================================================
 
         async function loadHCData() {
             try {
-                const response = await fetch(`${API_URL}?action=getHC`);
+                const stored = localStorage.getItem('hcData');
+                if (stored) {
+                    hcData = JSON.parse(stored);
+                    updateHCStatus();
+                } else {
+                    showAlert('No hay datos HC cargados. Usa "Sincronizar desde Google Sheets" o carga un archivo Excel.', 'warning');
+                }
+            } catch (e) {
+                showAlert('Error al cargar datos: ' + e.message, 'error');
+            }
+        }
+
+        async function loadHCDataFromSheets() {
+            try {
+                const btn = document.getElementById('sync-btn');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="loading"></span> Sincronizando...';
+
+                const response = await fetch(GAS_URL + '?action=getHC');
                 const result = await response.json();
-                
+
                 if (result.error) {
-                    showAlert('Error al cargar HC: ' + result.error, 'error');
+                    showAlert('Error: ' + result.error, 'error');
                     return;
                 }
 
                 hcData = result.data || [];
-                document.getElementById('hc-records').textContent = hcData.length;
-                
-                // Cargar config para fecha
-                const configResponse = await fetch(`${API_URL}?action=getConfig`);
-                const configResult = await configResponse.json();
-                if (configResult.config) {
-                    const lastUpdate = configResult.config.HC_LastUpdate;
-                    if (lastUpdate) {
-                        document.getElementById('hc-lastupdate').textContent = new Date(lastUpdate).toLocaleDateString('es-MX');
-                    }
-                }
+                localStorage.setItem('hcData', JSON.stringify(hcData));
+                updateHCStatus();
+                showAlert('✅ HC sincronizado correctamente (' + hcData.length + ' empleados)', 'success');
             } catch (e) {
-                showAlert('Error: ' + e.message, 'error');
+                showAlert('Error al sincronizar: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = 'Sincronizar desde Google Sheets';
             }
         }
 
-        async function loadBajasData() {
-            try {
-                const response = await fetch(`${API_URL}?action=getBajas`);
-                const result = await response.json();
-                
-                if (result.error) {
-                    showAlert('Error al cargar bajas: ' + result.error, 'error');
-                    return;
-                }
-
-                bajasData = result.data || [];
-                document.getElementById('bajas-total').textContent = bajasData.length;
-                document.getElementById('bajas-hc-count').textContent = hcData.length;
-            } catch (e) {
-                showAlert('Error: ' + e.message, 'error');
-            }
+        function updateHCStatus() {
+            document.getElementById('total-emps').textContent = hcData.length;
+            const date = localStorage.getItem('hcLastUpdate') || new Date().toLocaleDateString('es-MX');
+            document.getElementById('last-update').textContent = date;
         }
 
         // ============================================================================
-        // UPLOAD HC
+        // UPLOAD EXCEL
         // ============================================================================
 
-        async function handleHCUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        function triggerFileUpload() {
+            document.getElementById('hc-file').click();
+        }
 
+        document.getElementById('hc-file')?.addEventListener('change', function(e) {
+            handleHCUpload(e);
+        });
+
+        function handleHCUpload(event) {
+            const files = event.target.files;
+            if (files.length === 0) return;
+
+            const file = files[0];
             const reader = new FileReader();
-            reader.onload = async (e) => {
+
+            reader.onload = function(e) {
                 try {
-                    const statusDiv = document.getElementById('upload-status');
-                    statusDiv.innerHTML = '<div class="alert"><span class="loading"></span> Procesando HC...</div>';
-                    statusDiv.style.display = 'block';
-
-                    const data = e.target.result;
+                    const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const parsed = XLSX.utils.sheet_to_json(worksheet);
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                    if (parsed.length === 0) {
-                        statusDiv.innerHTML = '<div class="alert error">❌ El archivo está vacío</div>';
+                    if (jsonData.length === 0) {
+                        showAlert('El archivo está vacío', 'error');
                         return;
                     }
 
-                    const headers = Object.keys(parsed[0]);
-                    const payload = {
-                        headers: headers,
-                        data: parsed
-                    };
-
-                    const response = await fetch(API_URL + '?action=uploadHC', {
-                        method: 'POST',
-                        body: JSON.stringify(payload)
-                    });
-
-                    const result = await response.json();
-
-                    if (result.error) {
-                        statusDiv.innerHTML = `<div class="alert error">❌ Error: ${result.error}</div>`;
-                    } else {
-                        statusDiv.innerHTML = `<div class="alert success">✅ HC actualizado correctamente. Bajas detectadas: ${result.bajasDetectadas}</div>`;
-                        loadHCData();
-                        document.getElementById('hc-file').value = '';
-                    }
+                    hcData = jsonData;
+                    localStorage.setItem('hcData', JSON.stringify(hcData));
+                    localStorage.setItem('hcLastUpdate', new Date().toLocaleDateString('es-MX'));
+                    updateHCStatus();
+                    showAlert('✅ ' + hcData.length + ' empleados cargados correctamente', 'success');
                 } catch (error) {
-                    document.getElementById('upload-status').innerHTML = `<div class="alert error">❌ Error: ${error.message}</div>`;
+                    showAlert('Error al procesar Excel: ' + error.message, 'error');
                 }
             };
 
@@ -730,31 +699,34 @@
         }
 
         // ============================================================================
-        // BÚSQUEDA DE EMPLEADOS
+        // BUSCAR EMPLEADOS
         // ============================================================================
 
-        function searchEmployee(query) {
+        function filterEmployees() {
+            const input = document.getElementById('employee-search').value.toLowerCase();
             const suggestionsDiv = document.getElementById('suggestions');
-            
-            if (!query || query.length < 2) {
+
+            if (input.length < 1) {
                 suggestionsDiv.classList.remove('show');
                 return;
             }
 
             const filtered = hcData.filter(emp => {
-                const nombre = String(emp["Nombre preferido"] || "").toLowerCase();
+                const nombre = (emp["Nombre preferido"] || "").toLowerCase();
                 const id = String(emp["Empl ID"] || "").toLowerCase();
-                return nombre.includes(query.toLowerCase()) || id.includes(query.toLowerCase());
-            });
+                return nombre.includes(input) || id.includes(input);
+            }).slice(0, 10);
 
             if (filtered.length === 0) {
                 suggestionsDiv.classList.remove('show');
                 return;
             }
 
-            suggestionsDiv.innerHTML = filtered.slice(0, 5).map((emp, idx) => `
-                <div class="suggestion-item" onclick="selectEmployee(this.innerText)">${emp["Nombre preferido"]} (ID: ${emp["Empl ID"]})</div>
-            `).join('');
+            suggestionsDiv.innerHTML = filtered.map(emp => 
+                `<div class="suggestion-item" onclick="selectEmployee('${emp["Nombre preferido"]} (ID: ${emp["Empl ID"]})')">
+                    ${emp["Nombre preferido"]} (ID: ${emp["Empl ID"]})
+                </div>`
+            ).join('');
 
             suggestionsDiv.classList.add('show');
         }
@@ -772,6 +744,7 @@
                 populateEmployeeForm();
                 document.getElementById('suggestions').classList.remove('show');
                 document.getElementById('employee-search').value = nombre;
+                updateLetterPreview();
             }
         }
 
@@ -795,6 +768,7 @@
             if (originalEmployee) {
                 currentEmployee = JSON.parse(JSON.stringify(originalEmployee));
                 populateEmployeeForm();
+                updateLetterPreview();
                 showAlert('Datos restaurados al original', 'success');
             }
         }
@@ -813,15 +787,44 @@
                 const letterType = document.querySelector('input[name="letter-type"]:checked').value;
                 const letterContent = generateLetterContent(letterType);
                 
-                const blob = new Blob([letterContent], { type: 'text/plain' });
+                // Crear documento Word con docx
+                const { Document, Packer, Paragraph, TextRun } = window.docx;
+                
+                const doc = new Document({
+                    sections: [{
+                        children: letterContent.split('\n').map(line => 
+                            new Paragraph({
+                                text: line,
+                                run: { font: "Calibri", size: 22 }
+                            })
+                        )
+                    }]
+                });
+
+                const blob = await Packer.toBlob(doc);
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Carta_${letterType}_${currentEmployee["Empl ID"]}.txt`;
+                a.download = `Carta_${letterType}_${currentEmployee["Empl ID"]}.docx`;
                 a.click();
                 window.URL.revokeObjectURL(url);
 
-                showAlert('Carta descargada correctamente', 'success');
+                showAlert('✅ Carta descargada correctamente', 'success');
+                
+                // Registrar en GAS (opcional)
+                try {
+                    await fetch(GAS_URL, {
+                        method: 'POST',
+                        payload: JSON.stringify({
+                            action: 'saveLetter',
+                            emplId: currentEmployee["Empl ID"],
+                            tipoCartа: letterType,
+                            timestamp: new Date().toISOString()
+                        })
+                    });
+                } catch (e) {
+                    // Silent fail para registro
+                }
             } catch (e) {
                 showAlert('Error al generar carta: ' + e.message, 'error');
             }
@@ -838,8 +841,7 @@
             const fechaFormato = formatDateForLetter(fechaCarta);
 
             if (type === 'consulado') {
-                return `
-JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+                return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
 Torreón, Coahuila a ${fechaFormato}
 
@@ -857,11 +859,9 @@ Se extiende la presente a petición del interesado(a) para los fines que le conv
 Atentamente,
 
 Moises de la O Murillo
-Generalista de Recursos Humanos
-                `;
+Generalista de Recursos Humanos`;
             } else if (type === 'fonacot') {
-                return `
-JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+                return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
 Torreón, Coahuila a ${fechaFormato}
 
@@ -879,11 +879,9 @@ Se extiende la presente a petición del interesado(a) para los fines que le conv
 Atentamente,
 
 Moises de la O Murillo
-Generalista de Recursos Humanos
-                `;
+Generalista de Recursos Humanos`;
             } else {
-                return `
-JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+                return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
 Torreón, Coahuila a ${fechaFormato}
 
@@ -899,9 +897,83 @@ Se extiende la presente a petición del interesado(a) para los fines que le conv
 Atentamente,
 
 Moises de la O Murillo
-Generalista de Recursos Humanos
-                `;
+Generalista de Recursos Humanos`;
             }
+        }
+
+        function updateLetterPreview() {
+            if (!currentEmployee) return;
+            const letterType = document.querySelector('input[name="letter-type"]:checked').value;
+            const content = generateLetterContent(letterType);
+            document.getElementById('preview-text').textContent = content;
+        }
+
+        // ============================================================================
+        // HISTORIAL BAJAS
+        // ============================================================================
+
+        async function loadBajasData() {
+            try {
+                const response = await fetch(GAS_URL + '?action=getBajas');
+                const result = await response.json();
+                bajasData = result.data || [];
+                document.getElementById('total-bajas').textContent = bajasData.length;
+            } catch (e) {
+                showAlert('Error al cargar bajas: ' + e.message, 'error');
+            }
+        }
+
+        function exportBajasExcel() {
+            if (bajasData.length === 0) {
+                showAlert('No hay bajas para exportar', 'error');
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(bajasData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Bajas");
+            XLSX.writeFile(wb, 'bajas_' + new Date().toISOString().split('T')[0] + '.xlsx');
+            showAlert('✅ Bajas exportadas como Excel', 'success');
+        }
+
+        function exportBajasJSON() {
+            if (bajasData.length === 0) {
+                showAlert('No hay bajas para exportar', 'error');
+                return;
+            }
+
+            const json = JSON.stringify(bajasData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bajas_' + new Date().toISOString().split('T')[0] + '.json';
+            a.click();
+            window.URL.revokeObjectURL(url);
+            showAlert('✅ Bajas exportadas como JSON', 'success');
+        }
+
+        function showBajasTable() {
+            if (bajasData.length === 0) {
+                showAlert('No hay bajas registradas', 'warning');
+                return;
+            }
+
+            const container = document.getElementById('bajas-table-container');
+            const headers = Object.keys(bajasData[0]);
+            
+            let html = '<table style="width:100%; border-collapse: collapse;"><tr>';
+            headers.forEach(h => html += `<th style="border: 1px solid #ddd; padding: 0.5rem; text-align: left; background: #f5f5f5;">${h}</th>`);
+            html += '</tr>';
+            
+            bajasData.forEach(row => {
+                html += '<tr>';
+                headers.forEach(h => html += `<td style="border: 1px solid #ddd; padding: 0.5rem;">${row[h] || '-'}</td>`);
+                html += '</tr>';
+            });
+            
+            html += '</table>';
+            container.innerHTML = html;
         }
 
         // ============================================================================
@@ -933,78 +1005,39 @@ Generalista de Recursos Humanos
             setTimeout(() => alert.remove(), 5000);
         }
 
-        function exportBajasExcel() {
-            if (bajasData.length === 0) {
-                showAlert('No hay bajas para exportar', 'error');
-                return;
-            }
-
-            const ws = XLSX.utils.json_to_sheet(bajasData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Bajas");
-            XLSX.writeFile(wb, 'bajas_' + new Date().toISOString().split('T')[0] + '.xlsx');
-        }
-
-        function exportBajasJSON() {
-            if (bajasData.length === 0) {
-                showAlert('No hay bajas para exportar', 'error');
-                return;
-            }
-
-            const json = JSON.stringify(bajasData, null, 2);
-            const blob = new Blob([json], { type: 'application/json' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'bajas_' + new Date().toISOString().split('T')[0] + '.json';
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
-
-        function showBajasTable() {
-            showAlert('Vista de tabla en desarrollo', 'error');
-        }
-
-        function handleBajasUpload(event) {
-            showAlert('Carga de bajas en desarrollo', 'error');
-        }
-
-        function handleBajasJSONUpload(event) {
-            showAlert('Carga de JSON en desarrollo', 'error');
-        }
-
-        function updateLetterPreview() {
-            // Placeholder
-        }
-
         // ============================================================================
         // INICIALIZACIÓN
         // ============================================================================
 
         window.addEventListener('load', () => {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('emp-fecha-carta').value = today;
             loadHCData();
-        });
+            loadBajasData();
+            const uploadArea = document.getElementById('upload-area');
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
 
-        const uploadArea = document.getElementById('upload-area');
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
 
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const fileInput = document.getElementById('hc-file');
+                    fileInput.files = files;
+                    handleHCUpload({ target: { files: files } });
+                }
+            });
 
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                document.getElementById('hc-file').files = files;
-                handleHCUpload({ target: { files: files } });
-            }
+            // Actualizar preview al cambiar tipo de carta
+            document.querySelectorAll('input[name="letter-type"]').forEach(radio => {
+                radio.addEventListener('change', updateLetterPreview);
+            });
         });
     </script>
 </body>
