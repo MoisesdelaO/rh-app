@@ -6,7 +6,7 @@
     <title>Generador de Cartas HR</title>
     <!-- XLSX para export bajas -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- JSZip para manipular archivos ZIP (Word es ZIP) -->
+    <!-- JSZip para manipular archivos Word -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
         * {
@@ -336,12 +336,6 @@
             border-left: 4px solid #d32f2f;
         }
 
-        .alert.warning {
-            background: #fff3e0;
-            color: #f57c00;
-            border-left: 4px solid #f57c00;
-        }
-
         @keyframes slideDown {
             from {
                 opacity: 0;
@@ -507,7 +501,7 @@
                 </div>
 
                 <div class="btn-group">
-                    <button class="btn btn-primary" onclick="downloadWord()">⬇️ Descargar como Word</button>
+                    <button class="btn btn-primary" onclick="downloadWordFromTemplate()">📄 Descargar como Word</button>
                 </div>
             </div>
         </div>
@@ -535,38 +529,19 @@
     </div>
 
     <script>
-        // ============================================================================
-        // VARIABLES GLOBALES
-        // ============================================================================
-
         let hcData = [];
         let bajasData = [];
         let currentEmployee = null;
         let originalEmployee = null;
-        let plantillas = {};
 
-        // URLs base64 de las plantillas (se cargan al inicio)
-        const TEMPLATE_URLS = {
-            'consulado': 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBAoACAAAAAA6aZhVAAAAAAAAAAAAAAAAABQAAAB3b3JkL2RvY3VtZW50LnhtbItWSk3sSFVQSSxRMFIqLkvEKA1QMFJKzsjRSU4tLlGyMjLSSMpLSisWULJSMtKrSC0oUqrUSyytVNJRSskrUkrJz0xRKM9RsFIqTlWqSsyDgAh+xZ40CgEUn5RVIZBSn1KeWqxQk5lSWqSQl5pemZOZklpZmlZUWqlAGQUQQZAAmFQRXZhcUlpQpABSW6RQkpqZoxCUWpyanFOcUqqQm5qal1BcnJ+cVKySmpmSmFickZqSWFqUklqZmlKRWluZlFpYWZJZnpmRmpian5eallyZm5hZnZpQW5iTm5+fllpeWZhYXp+am5qUXp+YXp+YW5uam5hfm5pQUlOamFpQWpJZm5pYUV5QWVpRmlhZWFiYnFJaUFiIz...',
-            'fonacot': 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBAoACAAAAAA6aZhVAAAAAAAAAAAAAAAAABQAAAB3b3JkL2RvY3VtZW50LnhtbItWSk3sSFVQSSxRMFIqLkvEKA1QMFJKzsjRSU4tLlGyMjLSSMpLSisWULJSMtKrSC0oUqrUSyytVNJRSskrUkrJz0xRKM9RsFIqTlWqSsyDgAh+xZ40CgEUn5RVIZBSn1KeWqxQk5lSWqSQl5pemZOZklpZmlZUWqlAGQUQQZAAmFQRXZhcUlpQpABSW6RQkpqZoxCUWpyanFOcUqq...',
-            'recomendacion': 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBAoACAAAAAA6aZhVAAAAAAAAAAAAAAAAABQAAAB3b3JkL2RvY3VtZW50LnhtbItWSk3sSFVQSSxRMFIqLkvEKA1QMFJKzsjRSU4tLlGyMjLSSMpLSisWULJSMtKrSC0oUqrUSyytVNJRSskrUkrJz0xRKM9RsFIqTlWqSsyDgAh+xZ40CgEUn5RVIZBSn1KeWqxQk5lSWqSQl5pemZOZklpZmlZUWqlAGQUQQZAAmFQRXZhcUlpQpABSW6RQkpqZoxCUWpyan...'
-        };
-
-        // ============================================================================
-        // FUNCIONES TAB NAVIGATION
-        // ============================================================================
+        const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/moisesdelao/rh-app/main/templates';
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
             document.getElementById(tabName).classList.add('active');
             event.target.classList.add('active');
         }
-
-        // ============================================================================
-        // CARGAR HC DATA
-        // ============================================================================
 
         function loadHCData() {
             try {
@@ -586,17 +561,11 @@
             document.getElementById('last-update').textContent = date;
         }
 
-        // ============================================================================
-        // UPLOAD EXCEL
-        // ============================================================================
-
         function triggerFileUpload() {
             document.getElementById('hc-file').click();
         }
 
-        document.getElementById('hc-file')?.addEventListener('change', function(e) {
-            handleHCUpload(e);
-        });
+        document.getElementById('hc-file')?.addEventListener('change', handleHCUpload);
 
         function handleHCUpload(event) {
             const files = event.target.files;
@@ -630,10 +599,6 @@
 
             reader.readAsArrayBuffer(file);
         }
-
-        // ============================================================================
-        // BUSCAR EMPLEADOS
-        // ============================================================================
 
         function filterEmployees() {
             const input = document.getElementById('employee-search').value.toLowerCase();
@@ -706,11 +671,7 @@
             }
         }
 
-        // ============================================================================
-        // GENERAR Y DESCARGAR WORD
-        // ============================================================================
-
-        async function downloadWord() {
+        async function downloadWordFromTemplate() {
             if (!currentEmployee) {
                 showAlert('Selecciona un empleado primero', 'error');
                 return;
@@ -725,24 +686,69 @@
                 const domicilio = document.getElementById('emp-domicilio').value;
                 const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
 
-                // Crear documento usando reemplazos de texto
-                const blob = new Blob([getTextContent(letterType, nombre, fechaIngreso, puesto, salario, domicilio, fechaCarta)], { type: 'text/plain;charset=utf-8' });
-                const url = window.URL.createObjectURL(blob);
+                showAlert('⏳ Generando documento...', 'info');
+
+                const fileMap = {
+                    'consulado': 'Carta_Consulado.docx',
+                    'fonacot': 'Carta_Fonacot.docx',
+                    'recomendacion': 'Carta_Recomendacion.docx'
+                };
+
+                const templateUrl = `${GITHUB_RAW_URL}/${fileMap[letterType]}`;
+
+                const response = await fetch(templateUrl);
+                if (!response.ok) {
+                    showAlert('No se pudo cargar la plantilla. Verifica que esté en GitHub.', 'error');
+                    return;
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                const zip = new JSZip();
+                await zip.loadAsync(arrayBuffer);
+
+                let xmlContent = await zip.file('word/document.xml').async('text');
+
+                xmlContent = xmlContent.replace(/NOMBRE DEL EMPLEADO/g, nombre);
+                xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
+                xmlContent = xmlContent.replace(/PUESTO DEL EMPLEADO/g, puesto);
+                xmlContent = xmlContent.replace(/SALARIO MENSUAL/g, salario.replace('$', '').trim());
+                xmlContent = xmlContent.replace(/_____/g, domicilio);
+                xmlContent = xmlContent.replace(/FECHA DEL DIA/g, fechaCarta);
+
+                zip.file('word/document.xml', xmlContent);
+
+                const newBlob = await zip.generateAsync({ type: 'blob' });
+
+                const url = window.URL.createObjectURL(newBlob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Carta_${letterType}_${currentEmployee["Empl ID"]}.txt`;
+                a.download = `Carta_${letterType}_${currentEmployee["Empl ID"]}.docx`;
                 a.click();
                 window.URL.revokeObjectURL(url);
 
-                showAlert('✅ Carta descargada como TXT. Abre en Word y guarda como .docx', 'success');
+                showAlert('✅ Carta descargada correctamente', 'success');
             } catch (e) {
                 showAlert('Error al generar carta: ' + e.message, 'error');
             }
         }
 
-        function getTextContent(type, nombre, fechaIngreso, puesto, salario, domicilio, fechaCarta) {
-            if (type === 'consulado') {
-                return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+        function updateLetterPreview() {
+            if (!currentEmployee) {
+                document.getElementById('preview-text').textContent = 'Selecciona un empleado y tipo de carta para ver la vista previa';
+                return;
+            }
+
+            const nombre = document.getElementById('emp-nombre').value;
+            const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
+            const puesto = document.getElementById('emp-puesto').value;
+            const salario = document.getElementById('emp-salario').value;
+            const domicilio = document.getElementById('emp-domicilio').value;
+            const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
+            const letterType = document.querySelector('input[name="letter-type"]:checked').value;
+
+            let content = '';
+            if (letterType === 'consulado') {
+                content = `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
 Torreón, Coahuila a ${fechaCarta}
 
@@ -761,8 +767,8 @@ Atentamente,
 
 Moises de la O Murillo
 Generalista de Recursos Humanos`;
-            } else if (type === 'fonacot') {
-                return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+            } else if (letterType === 'fonacot') {
+                content = `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
 Torreón, Coahuila a ${fechaCarta}
 
@@ -782,7 +788,7 @@ Atentamente,
 Moises de la O Murillo
 Generalista de Recursos Humanos`;
             } else {
-                return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
+                content = `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
 Torreón, Coahuila a ${fechaCarta}
 
@@ -800,28 +806,9 @@ Atentamente,
 Moises de la O Murillo
 Generalista de Recursos Humanos`;
             }
-        }
 
-        function updateLetterPreview() {
-            if (!currentEmployee) {
-                document.getElementById('preview-text').textContent = 'Selecciona un empleado y tipo de carta para ver la vista previa';
-                return;
-            }
-            const letterType = document.querySelector('input[name="letter-type"]:checked').value;
-            const nombre = document.getElementById('emp-nombre').value;
-            const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
-            const puesto = document.getElementById('emp-puesto').value;
-            const salario = document.getElementById('emp-salario').value;
-            const domicilio = document.getElementById('emp-domicilio').value;
-            const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
-            
-            const content = getTextContent(letterType, nombre, fechaIngreso, puesto, salario, domicilio, fechaCarta);
             document.getElementById('preview-text').textContent = content;
         }
-
-        // ============================================================================
-        // HISTORIAL BAJAS
-        // ============================================================================
 
         function loadBajasData() {
             try {
@@ -888,10 +875,6 @@ Generalista de Recursos Humanos`;
             container.innerHTML = html;
         }
 
-        // ============================================================================
-        // FUNCIONES AUXILIARES
-        // ============================================================================
-
         function formatDate(dateInput) {
             if (!dateInput) return "";
             const date = new Date(dateInput);
@@ -916,10 +899,6 @@ Generalista de Recursos Humanos`;
             document.body.insertBefore(alert, document.body.firstChild);
             setTimeout(() => alert.remove(), 5000);
         }
-
-        // ============================================================================
-        // INICIALIZACIÓN
-        // ============================================================================
 
         window.addEventListener('load', () => {
             loadHCData();
