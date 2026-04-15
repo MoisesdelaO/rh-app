@@ -665,7 +665,14 @@
             // Luego llenarlos con los datos actuales
             document.getElementById('emp-nombre').value = currentEmployee["Nombre preferido"] || "";
             document.getElementById('emp-id').value = currentEmployee["Empl ID"] || "";
-            document.getElementById('emp-fecha-ingreso').value = formatDate(currentEmployee["Fecha de contratación"]) || "";
+            
+            // Buscar la fecha de contratación en diferentes columnas posibles
+            let fechaContratacion = currentEmployee["Fecha de contratación"] || 
+                                   currentEmployee["fecha de contratación"] ||
+                                   currentEmployee["Fecha Contratación"] ||
+                                   currentEmployee["fecha contratación"] || "";
+            document.getElementById('emp-fecha-ingreso').value = formatDate(fechaContratacion) || "";
+            
             document.getElementById('emp-puesto').value = currentEmployee["Título de actividad"] || "";
             document.getElementById('emp-imss').value = currentEmployee["Mexico - IMSS"] || "";
             
@@ -908,9 +915,35 @@ Generalista de Recursos Humanos`;
 
         function formatDate(dateInput) {
             if (!dateInput) return "";
-            const date = new Date(dateInput);
+            
+            let dateObj;
+            
+            // Si es un número (fecha serial de Excel)
+            if (typeof dateInput === 'number') {
+                // Excel almacena fechas como números: días desde 1/1/1900
+                const excelEpoch = new Date(1900, 0, 1);
+                dateObj = new Date(excelEpoch.getTime() + (dateInput - 1) * 86400000);
+            } 
+            // Si es string en formato DD/MM/YYYY
+            else if (typeof dateInput === 'string' && dateInput.includes('/')) {
+                const parts = dateInput.split('/');
+                if (parts.length === 3) {
+                    // Asumir DD/MM/YYYY
+                    dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
+                } else {
+                    dateObj = new Date(dateInput);
+                }
+            }
+            // Si es string en formato YYYY-MM-DD
+            else if (typeof dateInput === 'string' && dateInput.includes('-')) {
+                dateObj = new Date(dateInput);
+            }
+            else {
+                dateObj = new Date(dateInput);
+            }
+            
             const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            return date.toLocaleDateString('es-MX', options);
+            return dateObj.toLocaleDateString('es-MX', options);
         }
 
         function formatDateForLetter(dateStr) {
