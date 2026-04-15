@@ -743,6 +743,7 @@
                     xmlContent = xmlContent.replace(/NOMBRE DEL EMPLEADO/g, nombre);
                     xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
                     xmlContent = xmlContent.replace(/PUESTO DEL EMPLEADO/g, puesto);
+                    xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
                     xmlContent = xmlContent.replace(/SALARIO MENSUAL/g, salario.replace('$', '').trim());
                 } else if (letterType === 'fonacot') {
                     xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
