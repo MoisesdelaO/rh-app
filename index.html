@@ -674,11 +674,17 @@
             document.getElementById('emp-fecha-ingreso').value = formatDate(fechaContratacion) || "";
             
             document.getElementById('emp-puesto').value = currentEmployee["Título de actividad"] || "";
-            document.getElementById('emp-imss').value = currentEmployee["Mexico - IMSS"] || "";
+            
+            // Extraer solo los números del IMSS (remover "MEX-NSS")
+            let imssRaw = currentEmployee["Mexico - IMSS"] || "";
+            let imssSolo = imssRaw.replace(/\(MEX-NSS\)/g, '').trim();
+            document.getElementById('emp-imss').value = imssSolo;
             
             const salarioDiario = parseFloat(currentEmployee["Salario Diario"] || 0);
             const salarioMensual = (salarioDiario * 30.4).toFixed(2);
-            document.getElementById('emp-salario').value = `$${salarioMensual}`;
+            // Formatear con comas
+            const salarioFormateado = parseFloat(salarioMensual).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('emp-salario').value = `$${salarioFormateado}`;
 
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('emp-fecha-carta').value = today;
@@ -746,6 +752,7 @@
                     xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
                     xmlContent = xmlContent.replace(/\$ SALARIO MENSUAL/g, `$ ${salario.replace('$', '').trim()}`);
                 } else if (letterType === 'recomendacion') {
+                    xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
                     xmlContent = xmlContent.replace(/FECHA DEL REALIZACION/g, fechaCarta);
                     xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
                     xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
