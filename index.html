@@ -132,12 +132,6 @@
             color: #333;
         }
 
-        .info-secondary {
-            font-size: 13px;
-            color: #999;
-            margin-top: 0.5rem;
-        }
-
         .upload-area {
             border: 2px dashed #ddd;
             border-radius: 8px;
@@ -359,21 +353,6 @@
             }
         }
 
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #2196F3;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
         .preview-section {
             background: #f9f9f9;
             padding: 1.5rem;
@@ -386,24 +365,7 @@
             word-wrap: break-word;
             font-size: 13px;
             line-height: 1.6;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .status-badge.active {
-            background: #e8f5e9;
-            color: #388e3c;
-        }
-
-        .status-badge.pending {
-            background: #fff3e0;
-            color: #f57c00;
+            font-family: 'Courier New', monospace;
         }
 
         @media (max-width: 768px) {
@@ -452,7 +414,6 @@
                     </div>
                     <div class="btn-group">
                         <button class="btn btn-primary" onclick="triggerFileUpload()">Seleccionar archivo</button>
-                        <button class="btn" onclick="loadHCDataFromSheets()" id="sync-btn">Sincronizar desde Google Sheets</button>
                     </div>
                 </div>
 
@@ -524,15 +485,15 @@
                     <h2 class="section-title">Tipo de carta</h2>
                     <div class="radio-group">
                         <div class="radio-item">
-                            <input type="radio" id="consulado" name="letter-type" value="consulado" checked>
+                            <input type="radio" id="consulado" name="letter-type" value="consulado" checked onchange="updateLetterPreview()">
                             <label for="consulado">Consulado</label>
                         </div>
                         <div class="radio-item">
-                            <input type="radio" id="fonacot" name="letter-type" value="fonacot">
+                            <input type="radio" id="fonacot" name="letter-type" value="fonacot" onchange="updateLetterPreview()">
                             <label for="fonacot">FONACOT</label>
                         </div>
                         <div class="radio-item">
-                            <input type="radio" id="recomendacion" name="letter-type" value="recomendacion">
+                            <input type="radio" id="recomendacion" name="letter-type" value="recomendacion" onchange="updateLetterPreview()">
                             <label for="recomendacion">Recomendación</label>
                         </div>
                     </div>
@@ -547,7 +508,6 @@
 
                 <div class="btn-group">
                     <button class="btn btn-primary" onclick="downloadWord()">Descargar como Word</button>
-                    <button class="btn" onclick="updateLetterPreview()">Actualizar vista previa</button>
                 </div>
             </div>
         </div>
@@ -576,13 +536,6 @@
 
     <script>
         // ============================================================================
-        // CONFIGURACIÓN
-        // ============================================================================
-        
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxkkRb91QKw-c8uyseOk2nRuj1vUWb6x1RRGXQlYpKVzwu5WT6kmupHUkmMO_2zpk3X/exec";
-        const SHEET_ID = "1maoy6UAczN1eCqfQeQyw89IW0JB_Ex0PLQgCVvGc3tM";
-
-        // ============================================================================
         // VARIABLES GLOBALES
         // ============================================================================
 
@@ -607,43 +560,15 @@
         // CARGAR HC DATA
         // ============================================================================
 
-        async function loadHCData() {
+        function loadHCData() {
             try {
                 const stored = localStorage.getItem('hcData');
                 if (stored) {
                     hcData = JSON.parse(stored);
                     updateHCStatus();
-                } else {
-                    showAlert('No hay datos HC cargados. Usa "Sincronizar desde Google Sheets" o carga un archivo Excel.', 'warning');
                 }
             } catch (e) {
-                showAlert('Error al cargar datos: ' + e.message, 'error');
-            }
-        }
-
-        async function loadHCDataFromSheets() {
-            try {
-                const btn = document.getElementById('sync-btn');
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loading"></span> Sincronizando...';
-
-                const response = await fetch(GAS_URL + '?action=getHC');
-                const result = await response.json();
-
-                if (result.error) {
-                    showAlert('Error: ' + result.error, 'error');
-                    return;
-                }
-
-                hcData = result.data || [];
-                localStorage.setItem('hcData', JSON.stringify(hcData));
-                updateHCStatus();
-                showAlert('✅ HC sincronizado correctamente (' + hcData.length + ' empleados)', 'success');
-            } catch (e) {
-                showAlert('Error al sincronizar: ' + e.message, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = 'Sincronizar desde Google Sheets';
+                showAlert('Error al cargar datos guardados: ' + e.message, 'warning');
             }
         }
 
@@ -788,16 +713,18 @@
                 const letterContent = generateLetterContent(letterType);
                 
                 // Crear documento Word con docx
-                const { Document, Packer, Paragraph, TextRun } = window.docx;
+                const { Document, Packer, Paragraph } = window.docx;
                 
+                const lines = letterContent.split('\n').map(line => 
+                    new Paragraph({
+                        text: line,
+                        run: { font: "Calibri", size: 22 }
+                    })
+                );
+
                 const doc = new Document({
                     sections: [{
-                        children: letterContent.split('\n').map(line => 
-                            new Paragraph({
-                                text: line,
-                                run: { font: "Calibri", size: 22 }
-                            })
-                        )
+                        children: lines
                     }]
                 });
 
@@ -810,21 +737,6 @@
                 window.URL.revokeObjectURL(url);
 
                 showAlert('✅ Carta descargada correctamente', 'success');
-                
-                // Registrar en GAS (opcional)
-                try {
-                    await fetch(GAS_URL, {
-                        method: 'POST',
-                        payload: JSON.stringify({
-                            action: 'saveLetter',
-                            emplId: currentEmployee["Empl ID"],
-                            tipoCartа: letterType,
-                            timestamp: new Date().toISOString()
-                        })
-                    });
-                } catch (e) {
-                    // Silent fail para registro
-                }
             } catch (e) {
                 showAlert('Error al generar carta: ' + e.message, 'error');
             }
@@ -902,7 +814,10 @@ Generalista de Recursos Humanos`;
         }
 
         function updateLetterPreview() {
-            if (!currentEmployee) return;
+            if (!currentEmployee) {
+                document.getElementById('preview-text').textContent = 'Selecciona un empleado y tipo de carta para ver la vista previa';
+                return;
+            }
             const letterType = document.querySelector('input[name="letter-type"]:checked').value;
             const content = generateLetterContent(letterType);
             document.getElementById('preview-text').textContent = content;
@@ -912,11 +827,12 @@ Generalista de Recursos Humanos`;
         // HISTORIAL BAJAS
         // ============================================================================
 
-        async function loadBajasData() {
+        function loadBajasData() {
             try {
-                const response = await fetch(GAS_URL + '?action=getBajas');
-                const result = await response.json();
-                bajasData = result.data || [];
+                const stored = localStorage.getItem('bajasData');
+                if (stored) {
+                    bajasData = JSON.parse(stored);
+                }
                 document.getElementById('total-bajas').textContent = bajasData.length;
             } catch (e) {
                 showAlert('Error al cargar bajas: ' + e.message, 'error');
@@ -1032,11 +948,6 @@ Generalista de Recursos Humanos`;
                     fileInput.files = files;
                     handleHCUpload({ target: { files: files } });
                 }
-            });
-
-            // Actualizar preview al cambiar tipo de carta
-            document.querySelectorAll('input[name="letter-type"]').forEach(radio => {
-                radio.addEventListener('change', updateLetterPreview);
             });
         });
     </script>
