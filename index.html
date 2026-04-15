@@ -646,6 +646,7 @@
                 populateEmployeeForm();
                 document.getElementById('suggestions').classList.remove('show');
                 document.getElementById('employee-search').value = nombre;
+                document.getElementById('emp-domicilio').value = ''; // Limpiar domicilio editable
                 updateLetterPreview();
             }
         }
@@ -653,9 +654,18 @@
         function populateEmployeeForm() {
             if (!currentEmployee) return;
 
+            // Limpiar primero todos los campos
+            document.getElementById('emp-nombre').value = '';
+            document.getElementById('emp-id').value = '';
+            document.getElementById('emp-fecha-ingreso').value = '';
+            document.getElementById('emp-puesto').value = '';
+            document.getElementById('emp-imss').value = '';
+            document.getElementById('emp-salario').value = '';
+
+            // Luego llenarlos con los datos actuales
             document.getElementById('emp-nombre').value = currentEmployee["Nombre preferido"] || "";
             document.getElementById('emp-id').value = currentEmployee["Empl ID"] || "";
-            document.getElementById('emp-fecha-ingreso').value = formatDate(currentEmployee["Fecha de contratación"]);
+            document.getElementById('emp-fecha-ingreso').value = formatDate(currentEmployee["Fecha de contratación"]) || "";
             document.getElementById('emp-puesto').value = currentEmployee["Título de actividad"] || "";
             document.getElementById('emp-imss').value = currentEmployee["Mexico - IMSS"] || "";
             
@@ -905,12 +915,11 @@ Generalista de Recursos Humanos`;
 
         function formatDateForLetter(dateStr) {
             if (!dateStr) return new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
-            const date = new Date(dateStr);
-            const day = date.getDate();
+            // Parsear la fecha como YYYY-MM-DD para evitar problemas de zona horaria
+            const [year, month, day] = dateStr.split('-');
             const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            const month = monthNames[date.getMonth()];
-            const year = date.getFullYear();
-            return `${day} de ${month}, ${year}`;
+            const monthName = monthNames[parseInt(month) - 1];
+            return `${parseInt(day)} de ${monthName}, ${year}`;
         }
 
         function showAlert(message, type = 'info') {
