@@ -462,6 +462,10 @@
                             <input type="text" id="emp-salario" readonly>
                         </div>
                         <div class="form-group">
+                            <label>IMSS</label>
+                            <input type="text" id="emp-imss" readonly>
+                        </div>
+                        <div class="form-group">
                             <label>Domicilio (editable)</label>
                             <input type="text" id="emp-domicilio" placeholder="Ingresa el domicilio">
                         </div>
@@ -653,6 +657,7 @@
             document.getElementById('emp-id').value = currentEmployee["Empl ID"] || "";
             document.getElementById('emp-fecha-ingreso').value = formatDate(currentEmployee["Fecha de contratación"]);
             document.getElementById('emp-puesto').value = currentEmployee["Título de actividad"] || "";
+            document.getElementById('emp-imss').value = currentEmployee["Mexico - IMSS"] || "";
             
             const salarioDiario = parseFloat(currentEmployee["Salario Diario"] || 0);
             const salarioMensual = (salarioDiario * 30.4).toFixed(2);
@@ -683,6 +688,7 @@
                 const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
                 const puesto = document.getElementById('emp-puesto').value;
                 const salario = document.getElementById('emp-salario').value;
+                const imss = document.getElementById('emp-imss').value;
                 const domicilio = document.getElementById('emp-domicilio').value;
                 const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
 
@@ -708,12 +714,27 @@
 
                 let xmlContent = await zip.file('word/document.xml').async('text');
 
-                xmlContent = xmlContent.replace(/NOMBRE DEL EMPLEADO/g, nombre);
-                xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
-                xmlContent = xmlContent.replace(/PUESTO DEL EMPLEADO/g, puesto);
-                xmlContent = xmlContent.replace(/SALARIO MENSUAL/g, salario.replace('$', '').trim());
-                xmlContent = xmlContent.replace(/_____/g, domicilio);
-                xmlContent = xmlContent.replace(/FECHA DEL DIA/g, fechaCarta);
+                // Reemplazar placeholders según el tipo de carta
+                if (letterType === 'consulado') {
+                    xmlContent = xmlContent.replace(/FECHA DEL DIA/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/NOMBRE DEL EMPLEADO/g, nombre);
+                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
+                    xmlContent = xmlContent.replace(/PUESTO DEL EMPLEADO/g, puesto);
+                    xmlContent = xmlContent.replace(/SALARIO MENSUAL/g, salario.replace('$', '').trim());
+                } else if (letterType === 'fonacot') {
+                    xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
+                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
+                    xmlContent = xmlContent.replace(/PUESTO DEL TRABAJADOR/g, puesto);
+                    xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
+                    xmlContent = xmlContent.replace(/\$ SALARIO MENSUAL/g, `$ ${salario.replace('$', '').trim()}`);
+                } else if (letterType === 'recomendacion') {
+                    xmlContent = xmlContent.replace(/FECHA DEL REALIZACION/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
+                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
+                    xmlContent = xmlContent.replace(/FECHA DE TERMINACION LABORAL/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/PUESTO DEL TRABAJADOR/g, puesto);
+                }
 
                 zip.file('word/document.xml', xmlContent);
 
