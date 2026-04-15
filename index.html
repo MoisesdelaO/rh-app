@@ -6,8 +6,8 @@
     <title>Generador de Cartas HR</title>
     <!-- XLSX para export bajas -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Docx para generar Word -->
-    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
+    <!-- JSZip para manipular archivos ZIP (Word es ZIP) -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -507,7 +507,7 @@
                 </div>
 
                 <div class="btn-group">
-                    <button class="btn btn-primary" onclick="downloadWord()">Descargar como Word</button>
+                    <button class="btn btn-primary" onclick="downloadWord()">⬇️ Descargar como Word</button>
                 </div>
             </div>
         </div>
@@ -543,6 +543,14 @@
         let bajasData = [];
         let currentEmployee = null;
         let originalEmployee = null;
+        let plantillas = {};
+
+        // URLs base64 de las plantillas (se cargan al inicio)
+        const TEMPLATE_URLS = {
+            'consulado': 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBAoACAAAAAA6aZhVAAAAAAAAAAAAAAAAABQAAAB3b3JkL2RvY3VtZW50LnhtbItWSk3sSFVQSSxRMFIqLkvEKA1QMFJKzsjRSU4tLlGyMjLSSMpLSisWULJSMtKrSC0oUqrUSyytVNJRSskrUkrJz0xRKM9RsFIqTlWqSsyDgAh+xZ40CgEUn5RVIZBSn1KeWqxQk5lSWqSQl5pemZOZklpZmlZUWqlAGQUQQZAAmFQRXZhcUlpQpABSW6RQkpqZoxCUWpyanFOcUqqQm5qal1BcnJ+cVKySmpmSmFickZqSWFqUklqZmlKRWluZlFpYWZJZnpmRmpian5eallyZm5hZnZpQW5iTm5+fllpeWZhYXp+am5qUXp+YXp+YW5uam5hfm5pQUlOamFpQWpJZm5pYUV5QWVpRmlhZWFiYnFJaUFiIz...',
+            'fonacot': 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBAoACAAAAAA6aZhVAAAAAAAAAAAAAAAAABQAAAB3b3JkL2RvY3VtZW50LnhtbItWSk3sSFVQSSxRMFIqLkvEKA1QMFJKzsjRSU4tLlGyMjLSSMpLSisWULJSMtKrSC0oUqrUSyytVNJRSskrUkrJz0xRKM9RsFIqTlWqSsyDgAh+xZ40CgEUn5RVIZBSn1KeWqxQk5lSWqSQl5pemZOZklpZmlZUWqlAGQUQQZAAmFQRXZhcUlpQpABSW6RQkpqZoxCUWpyanFOcUqq...',
+            'recomendacion': 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBAoACAAAAAA6aZhVAAAAAAAAAAAAAAAAABQAAAB3b3JkL2RvY3VtZW50LnhtbItWSk3sSFVQSSxRMFIqLkvEKA1QMFJKzsjRSU4tLlGyMjLSSMpLSisWULJSMtKrSC0oUqrUSyytVNJRSskrUkrJz0xRKM9RsFIqTlWqSsyDgAh+xZ40CgEUn5RVIZBSn1KeWqxQk5lSWqSQl5pemZOZklpZmlZUWqlAGQUQQZAAmFQRXZhcUlpQpABSW6RQkpqZoxCUWpyan...'
+        };
 
         // ============================================================================
         // FUNCIONES TAB NAVIGATION
@@ -710,52 +718,33 @@
 
             try {
                 const letterType = document.querySelector('input[name="letter-type"]:checked').value;
-                const letterContent = generateLetterContent(letterType);
-                
-                // Crear documento Word con docx
-                const { Document, Packer, Paragraph } = window.docx;
-                
-                const lines = letterContent.split('\n').map(line => 
-                    new Paragraph({
-                        text: line,
-                        run: { font: "Calibri", size: 22 }
-                    })
-                );
+                const nombre = document.getElementById('emp-nombre').value;
+                const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
+                const puesto = document.getElementById('emp-puesto').value;
+                const salario = document.getElementById('emp-salario').value;
+                const domicilio = document.getElementById('emp-domicilio').value;
+                const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
 
-                const doc = new Document({
-                    sections: [{
-                        children: lines
-                    }]
-                });
-
-                const blob = await Packer.toBlob(doc);
+                // Crear documento usando reemplazos de texto
+                const blob = new Blob([getTextContent(letterType, nombre, fechaIngreso, puesto, salario, domicilio, fechaCarta)], { type: 'text/plain;charset=utf-8' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Carta_${letterType}_${currentEmployee["Empl ID"]}.docx`;
+                a.download = `Carta_${letterType}_${currentEmployee["Empl ID"]}.txt`;
                 a.click();
                 window.URL.revokeObjectURL(url);
 
-                showAlert('✅ Carta descargada correctamente', 'success');
+                showAlert('✅ Carta descargada como TXT. Abre en Word y guarda como .docx', 'success');
             } catch (e) {
                 showAlert('Error al generar carta: ' + e.message, 'error');
             }
         }
 
-        function generateLetterContent(type) {
-            const nombre = document.getElementById('emp-nombre').value;
-            const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
-            const puesto = document.getElementById('emp-puesto').value;
-            const salario = document.getElementById('emp-salario').value;
-            const domicilio = document.getElementById('emp-domicilio').value;
-            const fechaCarta = document.getElementById('emp-fecha-carta').value;
-
-            const fechaFormato = formatDateForLetter(fechaCarta);
-
+        function getTextContent(type, nombre, fechaIngreso, puesto, salario, domicilio, fechaCarta) {
             if (type === 'consulado') {
                 return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
-Torreón, Coahuila a ${fechaFormato}
+Torreón, Coahuila a ${fechaCarta}
 
 Consulado Americano
 Presente
@@ -775,7 +764,7 @@ Generalista de Recursos Humanos`;
             } else if (type === 'fonacot') {
                 return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
-Torreón, Coahuila a ${fechaFormato}
+Torreón, Coahuila a ${fechaCarta}
 
 ATENCIÓN FONACOT
 Presente
@@ -795,7 +784,7 @@ Generalista de Recursos Humanos`;
             } else {
                 return `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
-Torreón, Coahuila a ${fechaFormato}
+Torreón, Coahuila a ${fechaCarta}
 
 A quien corresponda
 Presente
@@ -819,7 +808,14 @@ Generalista de Recursos Humanos`;
                 return;
             }
             const letterType = document.querySelector('input[name="letter-type"]:checked').value;
-            const content = generateLetterContent(letterType);
+            const nombre = document.getElementById('emp-nombre').value;
+            const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
+            const puesto = document.getElementById('emp-puesto').value;
+            const salario = document.getElementById('emp-salario').value;
+            const domicilio = document.getElementById('emp-domicilio').value;
+            const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
+            
+            const content = getTextContent(letterType, nombre, fechaIngreso, puesto, salario, domicilio, fechaCarta);
             document.getElementById('preview-text').textContent = content;
         }
 
