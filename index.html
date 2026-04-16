@@ -1131,8 +1131,7 @@ Generalista de Recursos Humanos`;
                     xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL TRABAJADOR', nombre);
                     xmlContent = replaceInXml(xmlContent, 'FECHA DE INGRESO', fechaIngreso);
                     xmlContent = replaceInXml(xmlContent, 'PUESTO DEL TRABAJADOR', puesto);
-                    xmlContent = replaceInXml(xmlContent, '# NUMERO DEL IMSS', '# ' + imss);
-                    xmlContent = replaceInXml(xmlContent, 'NUMERO DEL IMSS', imss);
+                    xmlContent = replaceInXml(xmlContent, ' NUMERO DEL IMSS', ' ' + imss); // con espacio
                     xmlContent = replaceInXml(xmlContent, '$ SALARIO MENSUAL', '$ ' + salarioLimpio);
                     xmlContent = replaceInXml(xmlContent, 'SALARIO MENSUAL', salarioLimpio);
                 } else if (letterType === 'recomendacion') {
