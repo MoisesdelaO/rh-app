@@ -1063,10 +1063,10 @@ Generalista de Recursos Humanos`;
             const safeValue = xmlEscape(value);
             const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             
-            // Patrón simple: buscar <w:t>PLACEHOLDER</w:t> y reemplazar SOLO el contenido
-            // Esto preserva todos los atributos y tags de formato
+            // Patrón flexible: buscar <w:t ...>PLACEHOLDER</w:t>
+            // Captura atributos como xml:space="preserve"
             return xml.replace(
-                new RegExp(`<w:t[^>]*>${escaped}</w:t>`, 'g'),
+                new RegExp(`<w:t[^>]*?>${escaped}</w:t>`, 'g'),
                 `<w:t>${safeValue}</w:t>`
             );
         }
