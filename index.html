@@ -1063,32 +1063,12 @@ Generalista de Recursos Humanos`;
             const safeValue = xmlEscape(value);
             const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             
-            // Buscar el placeholder en <w:t>PLACEHOLDER</w:t>
-            const textNodePattern = new RegExp(
-                `<w:t[^>]*>${escaped}</w:t>`,
-                'g'
-            );
-            
-            // Reemplazar con negrita: <w:r><w:rPr><w:b/></w:rPr><w:t>valor</w:t></w:r>
-            let result = xml.replace(textNodePattern, 
+            // Patrón simple: buscar <w:t>PLACEHOLDER</w:t> y reemplazar SOLO el contenido
+            // Esto preserva todos los atributos y tags de formato
+            return xml.replace(
+                new RegExp(`<w:t[^>]*>${escaped}</w:t>`, 'g'),
                 `<w:t>${safeValue}</w:t>`
             );
-            
-            // Luego buscar ese <w:t> recién insertado y envolverlo con negrita
-            // Patrón más específico: buscar el </w:t> que acabamos de insertar
-            result = result.replace(
-                new RegExp(`<w:t>${safeValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</w:t>`, 'g'),
-                `<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>${safeValue}</w:t></w:r>`
-            );
-            
-            // Fallback: si el patrón simple no funciona, hacer reemplazo directo
-            if (result === xml) {
-                result = result.replace(new RegExp(escaped, 'g'), 
-                    `<w:r><w:rPr><w:b/><w:bCs/></w:rPr><w:t>${safeValue}</w:t></w:r>`
-                );
-            }
-            
-            return result;
         }
 
         async function downloadWordFromTemplate() {
