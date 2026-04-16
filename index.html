@@ -2,50 +2,58 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#2196F3">
     <title>Generador de Cartas HR</title>
+
+    <!-- Favicon SVG: documento con check -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='12' y='8' width='40' height='48' rx='4' fill='%232196F3'/%3E%3Crect x='18' y='18' width='28' height='2.5' rx='1' fill='white' opacity='0.9'/%3E%3Crect x='18' y='25' width='22' height='2.5' rx='1' fill='white' opacity='0.7'/%3E%3Crect x='18' y='32' width='26' height='2.5' rx='1' fill='white' opacity='0.7'/%3E%3Cpath d='M22 44 L30 50 L44 38' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+
     <!-- XLSX para export bajas -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- JSZip para manipular archivos Word -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { -webkit-text-size-adjust: 100%; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background: #f5f5f5;
             color: #333;
+            min-height: 100vh;
         }
 
         header {
             background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
             border-bottom: 1px solid #e0e0e0;
-            padding: 1.5rem 2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
-        h1 {
-            font-size: 28px;
-            font-weight: 500;
-            color: #333;
-            margin-bottom: 0.5rem;
+        .app-icon {
+            flex-shrink: 0;
+            width: 44px; height: 44px;
+            background: #2196F3;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(33,150,243,0.25);
         }
+        .app-icon svg { width: 26px; height: 26px; }
 
-        .subtitle {
-            font-size: 13px;
-            color: #666;
-        }
+        .header-text { flex: 1; min-width: 0; }
+        h1 { font-size: 22px; font-weight: 600; color: #222; margin-bottom: 0.15rem; line-height: 1.2; }
+        .subtitle { font-size: 12px; color: #666; }
 
         .container {
             max-width: 1400px;
-            margin: 2rem auto;
+            margin: 1.5rem auto;
             background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             overflow: hidden;
         }
 
@@ -53,128 +61,74 @@
             display: flex;
             border-bottom: 1px solid #e0e0e0;
             background: #fafafa;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .tab-btn {
             flex: 1;
-            padding: 1rem;
+            min-width: 120px;
+            padding: 1rem 0.5rem;
             border: none;
             background: none;
             cursor: pointer;
             font-weight: 500;
             color: #666;
             border-bottom: 3px solid transparent;
-            transition: all 0.3s;
+            transition: all 0.2s;
             text-align: center;
-        }
-
-        .tab-btn.active {
-            color: #2196F3;
-            border-bottom-color: #2196F3;
-            background: white;
-        }
-
-        .tab-btn:hover {
-            background: white;
-        }
-
-        .content {
-            padding: 2rem;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .section {
-            margin-bottom: 2rem;
-        }
-
-        .section-title {
             font-size: 14px;
-            font-weight: 500;
-            color: #333;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .tab-btn.active { color: #2196F3; border-bottom-color: #2196F3; background: white; }
+        .tab-btn:hover:not(.active) { background: #f0f0f0; }
+
+        .content { padding: 1.5rem; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .section { margin-bottom: 2rem; }
+        .section-title {
+            font-size: 13px; font-weight: 600; color: #333;
+            text-transform: uppercase; letter-spacing: 0.5px;
             margin-bottom: 1rem;
             border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 0.75rem;
+            padding-bottom: 0.6rem;
         }
 
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
 
         .info-card {
             background: #f9f9f9;
-            padding: 1.5rem;
+            padding: 1.25rem;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
         }
-
         .info-label {
-            font-size: 12px;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            font-size: 11px; color: #999;
+            text-transform: uppercase; letter-spacing: 0.5px;
             margin-bottom: 0.5rem;
         }
-
-        .info-value {
-            font-size: 24px;
-            font-weight: 500;
-            color: #333;
-        }
+        .info-value { font-size: 22px; font-weight: 600; color: #333; }
 
         .upload-area {
             border: 2px dashed #ddd;
             border-radius: 8px;
-            padding: 2rem;
+            padding: 1.5rem 1rem;
             text-align: center;
             background: #fafafa;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s;
         }
-
-        .upload-area:hover {
-            border-color: #2196F3;
-            background: #f0f8ff;
-        }
-
-        .upload-area.dragover {
-            border-color: #2196F3;
-            background: #e3f2fd;
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 1rem;
-        }
-
-        .upload-text {
-            font-size: 14px;
-            color: #666;
-            font-weight: 500;
-        }
-
-        .upload-subtext {
-            font-size: 12px;
-            color: #999;
-            margin-top: 0.5rem;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
+        .upload-area:hover, .upload-area:active { border-color: #2196F3; background: #f0f8ff; }
+        .upload-area.dragover { border-color: #2196F3; background: #e3f2fd; }
+        .upload-icon { font-size: 40px; margin-bottom: 0.75rem; }
+        .upload-text { font-size: 14px; color: #555; font-weight: 500; }
+        .upload-subtext { font-size: 12px; color: #999; margin-top: 0.4rem; }
+        input[type="file"] { display: none; }
 
         .btn {
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1.25rem;
             border: 1px solid #ddd;
             border-radius: 6px;
             background: white;
@@ -182,43 +136,22 @@
             cursor: pointer;
             font-weight: 500;
             font-size: 14px;
-            transition: all 0.3s;
+            transition: all 0.2s;
+            min-height: 44px;
         }
+        .btn:hover { background: #f5f5f5; }
+        .btn-primary { background: #2196F3; color: white; border-color: #2196F3; }
+        .btn-primary:hover { background: #1976D2; }
+        .btn-group { display: flex; gap: 0.6rem; margin-top: 1.25rem; flex-wrap: wrap; }
 
-        .btn:hover {
-            background: #f5f5f5;
-        }
-
-        .btn-primary {
-            background: #2196F3;
-            color: white;
-            border-color: #2196F3;
-        }
-
-        .btn-primary:hover {
-            background: #1976D2;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1.5rem;
-            flex-wrap: wrap;
-        }
-
-        .search-box {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
+        .search-box { position: relative; margin-bottom: 1rem; }
         .search-box input {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.85rem;
             border: 1px solid #ddd;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 15px;
         }
-
         .search-box input:focus {
             outline: none;
             border-color: #2196F3;
@@ -227,134 +160,96 @@
 
         .suggestions {
             position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
+            top: 100%; left: 0; right: 0;
             background: white;
             border: 1px solid #ddd;
             border-top: none;
             border-radius: 0 0 6px 6px;
-            max-height: 200px;
+            max-height: 260px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             display: none;
             z-index: 10;
         }
-
-        .suggestions.show {
-            display: block;
-        }
-
+        .suggestions.show { display: block; }
         .suggestion-item {
             padding: 0.75rem;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             border-bottom: 1px solid #f0f0f0;
         }
+        .suggestion-item:hover, .suggestion-item:active { background: #f5f5f5; }
 
-        .suggestion-item:hover {
-            background: #f5f5f5;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
+        .form-group { margin-bottom: 1rem; }
         .form-group label {
             display: block;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 500;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
         }
-
-        .form-group input,
-        .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #ddd;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 15px;
             font-family: inherit;
+            background: white;
         }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
+        .form-group input[readonly] { background: #f9f9f9; color: #555; }
+        .form-group textarea { resize: vertical; min-height: 100px; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
             outline: none;
             border-color: #2196F3;
             box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
         }
 
-        .radio-group {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 1.5rem;
-        }
+        .radio-group { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .radio-item { display: flex; align-items: center; gap: 0.5rem; }
+        .radio-item input[type="radio"] { cursor: pointer; width: 18px; height: 18px; }
+        .radio-item label { margin: 0; cursor: pointer; font-size: 14px; }
 
-        .radio-item {
-            display: flex;
-            align-items: center;
+        #alert-container {
+            position: fixed;
+            top: 12px; left: 12px; right: 12px;
+            z-index: 1000;
+            display: flex; flex-direction: column;
             gap: 0.5rem;
+            pointer-events: none;
         }
-
-        .radio-item input[type="radio"] {
-            cursor: pointer;
-        }
-
-        .radio-item label {
-            margin: 0;
-            cursor: pointer;
-        }
-
         .alert {
-            padding: 1rem;
+            padding: 0.85rem 1rem;
             border-radius: 6px;
-            margin-bottom: 1rem;
             font-size: 14px;
-            animation: slideDown 0.3s ease;
+            animation: slideDown 0.25s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            pointer-events: auto;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
         }
-
-        .alert.info {
-            background: #e3f2fd;
-            color: #1976D2;
-            border-left: 4px solid #1976D2;
-        }
-
-        .alert.success {
-            background: #e8f5e9;
-            color: #388e3c;
-            border-left: 4px solid #388e3c;
-        }
-
-        .alert.error {
-            background: #ffebee;
-            color: #d32f2f;
-            border-left: 4px solid #d32f2f;
-        }
+        .alert.info    { background: #e3f2fd; color: #1976D2; border-left: 4px solid #1976D2; }
+        .alert.success { background: #e8f5e9; color: #2e7d32; border-left: 4px solid #2e7d32; }
+        .alert.error   { background: #ffebee; color: #c62828; border-left: 4px solid #c62828; }
+        .alert.warning { background: #fff8e1; color: #ef6c00; border-left: 4px solid #ef6c00; }
 
         @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         .preview-section {
             background: #f9f9f9;
-            padding: 1.5rem;
+            padding: 1.25rem;
             border-radius: 8px;
             border: 1px solid #e0e0e0;
-            margin-top: 2rem;
+            margin-top: 1rem;
             max-height: 400px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             white-space: pre-wrap;
             word-wrap: break-word;
             font-size: 13px;
@@ -362,52 +257,188 @@
             font-family: 'Courier New', monospace;
         }
 
-        @media (max-width: 768px) {
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center; justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 1.5rem;
+        }
+        .modal h3 { margin-bottom: 0.5rem; font-size: 18px; }
+        .modal p.modal-desc { font-size: 13px; color: #666; margin-bottom: 1.25rem; }
 
-            .radio-group {
-                flex-direction: column;
-                gap: 1rem;
-            }
+        .mapping-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding: 0.6rem;
+            background: #f9f9f9;
+            border-radius: 6px;
+        }
+        .mapping-label { font-size: 13px; font-weight: 500; }
+        .mapping-label .req { color: #c62828; }
+        .mapping-row select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            width: 100%;
+            background: white;
+        }
 
-            h1 {
-                font-size: 20px;
-            }
+        .bajas-table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-top: 1.25rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        .bajas-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 600px;
+        }
+        .bajas-table th {
+            background: #f5f5f5;
+            padding: 0.65rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 1px solid #ddd;
+            white-space: nowrap;
+        }
+        .bajas-table td {
+            padding: 0.6rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .bajas-table tr:last-child td { border-bottom: none; }
 
-            .container {
-                margin: 1rem;
-            }
+        /* Tablet */
+        @media (max-width: 900px) {
+            .content { padding: 1.25rem; }
+            .container { margin: 1rem; }
+        }
+
+        /* Móvil */
+        @media (max-width: 640px) {
+            header { padding: 1rem; gap: 0.75rem; }
+            .app-icon { width: 38px; height: 38px; }
+            .app-icon svg { width: 22px; height: 22px; }
+            h1 { font-size: 17px; }
+            .subtitle { font-size: 11px; }
+            .container { margin: 0.75rem; border-radius: 6px; }
+            .content { padding: 1rem; }
+            .grid-2 { grid-template-columns: 1fr; gap: 0.5rem; }
+            .radio-group { flex-direction: column; gap: 0.75rem; }
+            .btn { width: 100%; }
+            .btn-group { flex-direction: column; }
+            .tab-btn { font-size: 13px; padding: 0.85rem 0.4rem; min-width: 0; }
+            .info-value { font-size: 20px; }
+            .mapping-row { grid-template-columns: 1fr; gap: 0.4rem; }
+            .section { margin-bottom: 1.5rem; }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>Generador de Cartas HR</h1>
-        <p class="subtitle">Gestión automática de cartas: Consulado, FONACOT y Recomendación</p>
+        <div class="app-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                <rect x="12" y="8" width="40" height="48" rx="4" fill="white" opacity="0.95"/>
+                <rect x="18" y="18" width="28" height="2.5" rx="1" fill="#2196F3" opacity="0.9"/>
+                <rect x="18" y="25" width="22" height="2.5" rx="1" fill="#2196F3" opacity="0.55"/>
+                <rect x="18" y="32" width="26" height="2.5" rx="1" fill="#2196F3" opacity="0.55"/>
+                <path d="M22 44 L30 50 L44 38" stroke="#2196F3" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="header-text">
+            <h1>Generador de Cartas HR</h1>
+            <p class="subtitle">Consulado · FONACOT · Recomendación</p>
+        </div>
     </header>
 
+    <div id="alert-container"></div>
+
     <div class="container">
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('datos-hc')">HC Data</button>
-            <button class="tab-btn" onclick="switchTab('generar-cartas')">Generar Cartas</button>
-            <button class="tab-btn" onclick="switchTab('historial-bajas')">Historial Bajas</button>
+        <div class="tabs" role="tablist">
+            <button class="tab-btn active" data-tab="generar-cartas" type="button">Generar Cartas</button>
+            <button class="tab-btn" data-tab="datos-hc" type="button">HC Data</button>
+            <button class="tab-btn" data-tab="historial-bajas" type="button">Historial Bajas</button>
         </div>
 
-        <!-- TAB 1: HC DATA -->
-        <div id="datos-hc" class="tab-content active">
+        <!-- TAB 1: GENERAR CARTAS -->
+        <div id="generar-cartas" class="tab-content active">
             <div class="content">
                 <div class="section">
-                    <h2 class="section-title">Cargar datos HC desde Excel</h2>
-                    <div id="upload-area" class="upload-area">
-                        <div class="upload-icon">📁</div>
-                        <div class="upload-text">Arrastra tu archivo Excel aquí o haz click para seleccionar</div>
-                        <div class="upload-subtext">Formatos soportados: .xlsx, .xls, .csv</div>
-                        <input type="file" id="hc-file" accept=".xlsx,.xls,.csv">
+                    <h2 class="section-title">Seleccionar empleado</h2>
+                    <div class="search-box">
+                        <input type="text" id="employee-search" placeholder="Busca por nombre o ID..." autocomplete="off">
+                        <div id="suggestions" class="suggestions"></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Datos del empleado</h2>
+                    <div class="grid-2">
+                        <div class="form-group"><label>Nombre</label><input type="text" id="emp-nombre" readonly></div>
+                        <div class="form-group"><label>ID Empleado</label><input type="text" id="emp-id" readonly></div>
+                        <div class="form-group"><label>Fecha de ingreso</label><input type="text" id="emp-fecha-ingreso" readonly></div>
+                        <div class="form-group"><label>Puesto</label><input type="text" id="emp-puesto" readonly></div>
+                        <div class="form-group"><label>Salario mensual</label><input type="text" id="emp-salario" readonly></div>
+                        <div class="form-group"><label>IMSS</label><input type="text" id="emp-imss" readonly></div>
+                        <div class="form-group"><label>Domicilio (editable)</label><input type="text" id="emp-domicilio" placeholder="Ingresa el domicilio"></div>
+                        <div class="form-group"><label>Fecha de carta</label><input type="date" id="emp-fecha-carta"></div>
                     </div>
                     <div class="btn-group">
-                        <button class="btn btn-primary" onclick="triggerFileUpload()">Seleccionar archivo</button>
+                        <button class="btn" type="button" id="btn-reset-emp">Restaurar datos</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Tipo de carta</h2>
+                    <div class="radio-group">
+                        <div class="radio-item"><input type="radio" id="consulado" name="letter-type" value="consulado" checked><label for="consulado">Consulado</label></div>
+                        <div class="radio-item"><input type="radio" id="fonacot" name="letter-type" value="fonacot"><label for="fonacot">FONACOT</label></div>
+                        <div class="radio-item"><input type="radio" id="recomendacion" name="letter-type" value="recomendacion"><label for="recomendacion">Recomendación</label></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2 class="section-title">Vista previa</h2>
+                    <div class="preview-section" id="preview-text">Selecciona un empleado y tipo de carta para ver la vista previa</div>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" type="button" id="btn-download-word">📄 Descargar como Word</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: HC DATA -->
+        <div id="datos-hc" class="tab-content">
+            <div class="content">
+                <div class="section">
+                    <h2 class="section-title">Cargar HC desde Excel</h2>
+                    <div id="upload-area" class="upload-area">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">Toca aquí o arrastra tu archivo</div>
+                        <div class="upload-subtext">Formatos: .xlsx, .xls, .csv</div>
+                        <input type="file" id="hc-file" accept=".xlsx,.xls,.csv">
                     </div>
                 </div>
 
@@ -420,92 +451,12 @@
                         </div>
                         <div class="info-card">
                             <div class="info-label">Última actualización</div>
-                            <div class="info-value" style="font-size: 16px;" id="last-update">-</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 2: GENERAR CARTAS -->
-        <div id="generar-cartas" class="tab-content">
-            <div class="content">
-                <div class="section">
-                    <h2 class="section-title">Seleccionar empleado</h2>
-                    <div class="search-box">
-                        <input type="text" id="employee-search" placeholder="Busca por nombre o ID..." onkeyup="filterEmployees()">
-                        <div id="suggestions" class="suggestions"></div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h2 class="section-title">Datos del empleado</h2>
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Nombre</label>
-                            <input type="text" id="emp-nombre" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>ID Empleado</label>
-                            <input type="text" id="emp-id" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Fecha de ingreso</label>
-                            <input type="text" id="emp-fecha-ingreso" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Puesto</label>
-                            <input type="text" id="emp-puesto" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Salario mensual</label>
-                            <input type="text" id="emp-salario" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>IMSS</label>
-                            <input type="text" id="emp-imss" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label>Domicilio (editable)</label>
-                            <input type="text" id="emp-domicilio" placeholder="Ingresa el domicilio">
-                        </div>
-                        <div class="form-group">
-                            <label>Fecha de carta</label>
-                            <input type="date" id="emp-fecha-carta">
+                            <div class="info-value" style="font-size: 15px;" id="last-update">-</div>
                         </div>
                     </div>
                     <div class="btn-group">
-                        <button class="btn" onclick="resetEmployeeData()">Restaurar datos</button>
+                        <button class="btn" type="button" id="btn-refresh-hc">🔄 Recargar desde Sheets</button>
                     </div>
-                </div>
-
-                <div class="section">
-                    <h2 class="section-title">Tipo de carta</h2>
-                    <div class="radio-group">
-                        <div class="radio-item">
-                            <input type="radio" id="consulado" name="letter-type" value="consulado" checked onchange="updateLetterPreview()">
-                            <label for="consulado">Consulado</label>
-                        </div>
-                        <div class="radio-item">
-                            <input type="radio" id="fonacot" name="letter-type" value="fonacot" onchange="updateLetterPreview()">
-                            <label for="fonacot">FONACOT</label>
-                        </div>
-                        <div class="radio-item">
-                            <input type="radio" id="recomendacion" name="letter-type" value="recomendacion" onchange="updateLetterPreview()">
-                            <label for="recomendacion">Recomendación</label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section">
-                    <h2 class="section-title">Vista previa</h2>
-                    <div class="preview-section" id="preview-text">
-                        Selecciona un empleado y tipo de carta para ver la vista previa
-                    </div>
-                </div>
-
-                <div class="btn-group">
-                    <button class="btn btn-primary" onclick="downloadWordFromTemplate()">📄 Descargar como Word</button>
                 </div>
             </div>
         </div>
@@ -515,126 +466,348 @@
             <div class="content">
                 <div class="section">
                     <h2 class="section-title">Historial de bajas</h2>
-                    <div id="bajas-status" class="info-card" style="margin-bottom: 1rem;">
+                    <div class="info-card" style="margin-bottom: 1rem;">
                         <div class="info-label">Total bajas registradas</div>
                         <div class="info-value" id="total-bajas">0</div>
                     </div>
                 </div>
-
                 <div class="btn-group">
-                    <button class="btn btn-primary" onclick="exportBajasExcel()">Exportar como Excel</button>
-                    <button class="btn" onclick="exportBajasJSON()">Exportar como JSON</button>
-                    <button class="btn" onclick="showBajasTable()">Ver tabla</button>
+                    <button class="btn btn-primary" type="button" id="btn-export-excel">Exportar Excel</button>
+                    <button class="btn" type="button" id="btn-export-json">Exportar JSON</button>
+                    <button class="btn" type="button" id="btn-show-table">Ver tabla</button>
                 </div>
+                <div id="bajas-table-container" style="margin-top: 1.25rem;"></div>
+            </div>
+        </div>
+    </div>
 
-                <div id="bajas-table-container" style="margin-top: 2rem;"></div>
+    <!-- MODAL: Mapeo manual de columnas -->
+    <div id="mapping-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>Mapeo de columnas</h3>
+            <p class="modal-desc">No pudimos detectar algunas columnas automáticamente. Selecciona cuál columna del Excel corresponde a cada campo. Este mapeo se guardará para las próximas cargas.</p>
+            <div id="mapping-rows"></div>
+            <div class="btn-group">
+                <button class="btn btn-primary" type="button" id="btn-confirm-mapping">Confirmar y cargar</button>
+                <button class="btn" type="button" id="btn-cancel-mapping">Cancelar</button>
             </div>
         </div>
     </div>
 
     <script>
+        // ====================================================================
+        // CONFIG
+        // ====================================================================
+        const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/moisesdelao/rh-app/main/templates';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxkkRb91QKw-c8uyseOk2nRuj1vUWb6x1RRGXQlYpKVzwu5WT6kmupHUkmMO_2zpk3X/exec';
+
+        const FIELD_SYNONYMS = {
+            id:           ['empl id','emplid','id empleado','id','numero de empleado','no empleado','employee id'],
+            nombre:       ['nombre preferido','nombre','preferred name','nombre completo','nombre del empleado'],
+            fechaIngreso: ['fecha de contratacion','fecha contratacion','fecha ingreso','fecha de ingreso','hire date'],
+            puesto:       ['titulo de actividad','titulo actividad','puesto','cargo','job title','posicion'],
+            imss:         ['mexico - imss','mexico imss','imss','nss','numero de seguro social','mex-nss'],
+            salarioDiario:['salario diario','sueldo diario','daily salary']
+        };
+
+        const FIELD_LABELS = {
+            id:           { label: 'ID Empleado',      required: true  },
+            nombre:       { label: 'Nombre',           required: true  },
+            fechaIngreso: { label: 'Fecha de ingreso', required: true  },
+            puesto:       { label: 'Puesto',           required: true  },
+            imss:         { label: 'IMSS / NSS',       required: false },
+            salarioDiario:{ label: 'Salario Diario',   required: true  }
+        };
+
+        // ====================================================================
+        // STATE
+        // ====================================================================
         let hcData = [];
         let bajasData = [];
         let currentEmployee = null;
         let originalEmployee = null;
+        let columnMapping = null;
+        let pendingUpload = null;
 
-        const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/moisesdelao/rh-app/main/templates';
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxkkRb91QKw-c8uyseOk2nRuj1vUWb6x1RRGXQlYpKVzwu5WT6kmupHUkmMO_2zpk3X/exec';
-        const SHEET_ID = '1maoy6UAczN1eCqfQeQyw89IW0JB_Ex0PLQgCVvGc3tM';
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+        // ====================================================================
+        // UTILS
+        // ====================================================================
+        function normalize(str) {
+            if (str == null) return '';
+            return String(str)
+                .toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
         }
 
-        function loadHCData() {
-            try {
-                const stored = localStorage.getItem('hcData');
-                if (stored) {
-                    hcData = JSON.parse(stored);
-                    updateHCStatus();
-                }
-            } catch (e) {
-                showAlert('Error al cargar datos guardados: ' + e.message, 'warning');
+        function escapeHtml(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function showAlert(message, type = 'info', timeout = 4000) {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            if (timeout > 0) {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    alert.style.transition = 'opacity 0.25s';
+                    setTimeout(() => alert.remove(), 250);
+                }, timeout);
             }
         }
 
-        function updateHCStatus() {
-            document.getElementById('total-emps').textContent = hcData.length;
-            const date = localStorage.getItem('hcLastUpdate') || new Date().toLocaleDateString('es-MX');
-            document.getElementById('last-update').textContent = date;
+        function formatDate(dateInput) {
+            if (dateInput === null || dateInput === undefined || dateInput === '') return '';
+            let dateObj;
+
+            if (typeof dateInput === 'number') {
+                // Excel serial — epoch correcto: 1899-12-30
+                const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+                dateObj = new Date(excelEpoch.getTime() + dateInput * 86400000);
+            } else if (dateInput instanceof Date) {
+                dateObj = dateInput;
+            } else if (typeof dateInput === 'string') {
+                const s = dateInput.trim();
+                if (s.includes('/')) {
+                    const parts = s.split('/');
+                    if (parts.length === 3) {
+                        dateObj = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                    } else {
+                        dateObj = new Date(s);
+                    }
+                } else if (s.includes('-')) {
+                    const parts = s.split('T')[0].split('-');
+                    if (parts.length === 3) {
+                        dateObj = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                    } else {
+                        dateObj = new Date(s);
+                    }
+                } else {
+                    dateObj = new Date(s);
+                }
+            } else {
+                return String(dateInput);
+            }
+
+            if (!dateObj || isNaN(dateObj.getTime())) return String(dateInput);
+            return dateObj.toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
         }
 
-        function triggerFileUpload() {
-            document.getElementById('hc-file').click();
+        function formatDateForLetter(dateStr) {
+            const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            if (!dateStr) {
+                const d = new Date();
+                return `${d.getDate()} de ${monthNames[d.getMonth()]}, ${d.getFullYear()}`;
+            }
+            const [year, month, day] = dateStr.split('-');
+            return `${parseInt(day)} de ${monthNames[parseInt(month) - 1]}, ${year}`;
         }
 
-        document.getElementById('hc-file')?.addEventListener('change', handleHCUpload);
+        // ====================================================================
+        // MAPEO DE COLUMNAS
+        // ====================================================================
+        function detectColumns(excelHeaders) {
+            const mapping = {};
+            const normalizedHeaders = excelHeaders.map(h => ({ original: h, normalized: normalize(h) }));
 
-        function handleHCUpload(event) {
-            const files = event.target.files;
-            if (files.length === 0) return;
+            for (const [field, synonyms] of Object.entries(FIELD_SYNONYMS)) {
+                let match = null;
+                for (const synonym of synonyms) {
+                    const found = normalizedHeaders.find(h => h.normalized === synonym);
+                    if (found) { match = found.original; break; }
+                }
+                if (!match) {
+                    for (const synonym of synonyms) {
+                        const found = normalizedHeaders.find(h => h.normalized.includes(synonym));
+                        if (found) { match = found.original; break; }
+                    }
+                }
+                mapping[field] = match;
+            }
+            return mapping;
+        }
 
-            const file = files[0];
+        function getMissingRequiredFields(mapping) {
+            return Object.entries(FIELD_LABELS)
+                .filter(([field, info]) => info.required && !mapping[field])
+                .map(([field]) => field);
+        }
+
+        function applyMapping(rawData, mapping) {
+            return rawData.map(row => {
+                const mapped = {};
+                for (const [field, excelCol] of Object.entries(mapping)) {
+                    mapped[field] = excelCol ? (row[excelCol] !== undefined ? row[excelCol] : '') : '';
+                }
+                return mapped;
+            });
+        }
+
+        function showMappingModal(rawData, excelHeaders, autoMapping) {
+            pendingUpload = { rawData, excelHeaders };
+            const rowsContainer = document.getElementById('mapping-rows');
+            rowsContainer.innerHTML = '';
+
+            for (const [field, info] of Object.entries(FIELD_LABELS)) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'mapping-row';
+
+                const label = document.createElement('div');
+                label.className = 'mapping-label';
+                label.innerHTML = escapeHtml(info.label) + (info.required ? ' <span class="req">*</span>' : '');
+
+                const select = document.createElement('select');
+                select.dataset.field = field;
+
+                const emptyOpt = document.createElement('option');
+                emptyOpt.value = '';
+                emptyOpt.textContent = info.required ? '-- Selecciona columna --' : '-- (opcional) --';
+                select.appendChild(emptyOpt);
+
+                excelHeaders.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    if (autoMapping[field] === h) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                rowDiv.appendChild(label);
+                rowDiv.appendChild(select);
+                rowsContainer.appendChild(rowDiv);
+            }
+
+            document.getElementById('mapping-modal').classList.add('show');
+        }
+
+        function closeMappingModal() {
+            document.getElementById('mapping-modal').classList.remove('show');
+            pendingUpload = null;
+        }
+
+        function confirmMapping() {
+            if (!pendingUpload) return;
+            const selects = document.querySelectorAll('#mapping-rows select');
+            const mapping = {};
+            const missing = [];
+            selects.forEach(sel => {
+                const field = sel.dataset.field;
+                mapping[field] = sel.value || null;
+                if (FIELD_LABELS[field].required && !sel.value) {
+                    missing.push(FIELD_LABELS[field].label);
+                }
+            });
+
+            if (missing.length > 0) {
+                showAlert('Faltan campos requeridos: ' + missing.join(', '), 'error');
+                return;
+            }
+
+            const { rawData } = pendingUpload;
+            columnMapping = mapping;
+            localStorage.setItem('columnMapping', JSON.stringify(mapping));
+            const processed = applyMapping(rawData, mapping);
+            finalizeUpload(processed);
+            closeMappingModal();
+        }
+
+        // ====================================================================
+        // CARGA DE HC
+        // ====================================================================
+        function handleHCUpload(fileList) {
+            if (!fileList || fileList.length === 0) return;
+            const file = fileList[0];
             const reader = new FileReader();
 
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
                     if (jsonData.length === 0) {
                         showAlert('El archivo está vacío', 'error');
                         return;
                     }
 
-                    hcData = jsonData;
-                    localStorage.setItem('hcData', JSON.stringify(hcData));
-                    localStorage.setItem('hcLastUpdate', new Date().toLocaleDateString('es-MX'));
-                    updateHCStatus();
-                    
-                    // Sincronizar con Google Sheets
-                    syncHCToGoogleSheets(jsonData);
-                    
-                    showAlert('✅ ' + hcData.length + ' empleados cargados correctamente', 'success');
+                    const excelHeaders = Object.keys(jsonData[0]);
+
+                    let savedMapping = null;
+                    try {
+                        const saved = localStorage.getItem('columnMapping');
+                        if (saved) savedMapping = JSON.parse(saved);
+                    } catch (e) {}
+
+                    let mapping;
+                    if (savedMapping) {
+                        const stillValid = Object.values(savedMapping).every(col => col === null || excelHeaders.includes(col));
+                        mapping = stillValid ? savedMapping : detectColumns(excelHeaders);
+                    } else {
+                        mapping = detectColumns(excelHeaders);
+                    }
+
+                    const missing = getMissingRequiredFields(mapping);
+                    if (missing.length > 0) {
+                        showAlert(`Se necesita mapear ${missing.length} columna(s) manualmente`, 'info');
+                        showMappingModal(jsonData, excelHeaders, mapping);
+                        return;
+                    }
+
+                    columnMapping = mapping;
+                    localStorage.setItem('columnMapping', JSON.stringify(mapping));
+                    const processed = applyMapping(jsonData, mapping);
+                    finalizeUpload(processed);
                 } catch (error) {
                     showAlert('Error al procesar Excel: ' + error.message, 'error');
                 }
             };
 
+            reader.onerror = function() {
+                showAlert('No se pudo leer el archivo', 'error');
+            };
+
             reader.readAsArrayBuffer(file);
+        }
+
+        function finalizeUpload(processed) {
+            hcData = processed;
+            localStorage.setItem('hcData', JSON.stringify(hcData));
+            localStorage.setItem('hcLastUpdate', new Date().toLocaleDateString('es-MX'));
+            updateHCStatus();
+            syncHCToGoogleSheets(processed);
+            showAlert(`✅ ${hcData.length} empleados cargados`, 'success');
         }
 
         async function syncHCToGoogleSheets(data) {
             try {
-                showAlert('⏳ Sincronizando con Google Sheets...', 'info');
-                
-                // Obtener headers del primer registro
-                const headers = data.length > 0 ? Object.keys(data[0]) : [];
-                
+                showAlert('⏳ Sincronizando con Google Sheets...', 'info', 2000);
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
                         action: 'uploadHC',
-                        headers: headers,
                         data: data
                     })
                 });
-
                 const result = await response.json();
                 if (result.success) {
-                    showAlert('✅ Datos sincronizados con Google Sheets', 'success');
+                    const bajasMsg = result.bajasDetectadas ? ` (${result.bajasDetectadas} bajas detectadas)` : '';
+                    showAlert('✅ Sincronizado con Google Sheets' + bajasMsg, 'success');
+                    await loadBajasFromGoogleSheets();
                 } else {
-                    showAlert('⚠️ Datos guardados localmente, pero error en Sheets: ' + result.message, 'warning');
+                    showAlert('⚠️ Guardado local OK, error en Sheets: ' + (result.error || 'desconocido'), 'warning');
                 }
             } catch (error) {
-                showAlert('⚠️ Datos guardados localmente. Error de sincronización: ' + error.message, 'warning');
+                showAlert('⚠️ Guardado local OK. Sync falló: ' + error.message, 'warning');
             }
         }
 
@@ -642,24 +815,75 @@
             try {
                 const response = await fetch(GAS_URL + '?action=getHC');
                 const result = await response.json();
-                
-                if (result.success && result.data && result.data.length > 0) {
+                if (result.success && Array.isArray(result.data) && result.data.length > 0) {
                     hcData = result.data;
                     localStorage.setItem('hcData', JSON.stringify(hcData));
-                    localStorage.setItem('hcLastUpdate', new Date().toLocaleDateString('es-MX'));
+                    if (result.lastUpdate) {
+                        localStorage.setItem('hcLastUpdate', new Date(result.lastUpdate).toLocaleDateString('es-MX'));
+                    }
                     updateHCStatus();
-                    showAlert('✅ Datos cargados desde Google Sheets', 'success');
                     return true;
                 }
                 return false;
             } catch (error) {
-                console.log('No se pudo conectar a Google Sheets, usando datos locales');
+                console.log('Sheets no disponible, usando localStorage');
                 return false;
             }
         }
 
+        async function loadBajasFromGoogleSheets() {
+            try {
+                const response = await fetch(GAS_URL + '?action=getBajas');
+                const result = await response.json();
+                if (result.success && Array.isArray(result.data)) {
+                    bajasData = result.data;
+                    localStorage.setItem('bajasData', JSON.stringify(bajasData));
+                    document.getElementById('total-bajas').textContent = bajasData.length;
+                }
+            } catch (e) {}
+        }
+
+        function loadHCFromLocalStorage() {
+            try {
+                const stored = localStorage.getItem('hcData');
+                if (stored) {
+                    hcData = JSON.parse(stored);
+                    updateHCStatus();
+                }
+            } catch (e) {
+                showAlert('Error al cargar datos locales: ' + e.message, 'warning');
+            }
+        }
+
+        function loadBajasFromLocalStorage() {
+            try {
+                const stored = localStorage.getItem('bajasData');
+                if (stored) bajasData = JSON.parse(stored);
+                document.getElementById('total-bajas').textContent = bajasData.length;
+            } catch (e) {
+                showAlert('Error al cargar bajas locales: ' + e.message, 'warning');
+            }
+        }
+
+        function updateHCStatus() {
+            document.getElementById('total-emps').textContent = hcData.length;
+            const date = localStorage.getItem('hcLastUpdate') || '-';
+            document.getElementById('last-update').textContent = date;
+        }
+
+        async function refreshFromSheets() {
+            showAlert('⏳ Recargando desde Google Sheets...', 'info', 2000);
+            const ok = await loadHCFromGoogleSheets();
+            await loadBajasFromGoogleSheets();
+            if (ok) showAlert('✅ Datos actualizados desde Sheets', 'success');
+            else showAlert('No se pudo conectar con Google Sheets', 'error');
+        }
+
+        // ====================================================================
+        // BÚSQUEDA Y SELECCIÓN
+        // ====================================================================
         function filterEmployees() {
-            const input = document.getElementById('employee-search').value.toLowerCase();
+            const input = document.getElementById('employee-search').value.toLowerCase().trim();
             const suggestionsDiv = document.getElementById('suggestions');
 
             if (input.length < 1) {
@@ -668,76 +892,51 @@
             }
 
             const filtered = hcData.filter(emp => {
-                const nombre = (emp["Nombre preferido"] || "").toLowerCase();
-                const id = String(emp["Empl ID"] || "").toLowerCase();
+                const nombre = String(emp.nombre || '').toLowerCase();
+                const id = String(emp.id || '').toLowerCase();
                 return nombre.includes(input) || id.includes(input);
             }).slice(0, 10);
 
             if (filtered.length === 0) {
-                suggestionsDiv.classList.remove('show');
+                suggestionsDiv.innerHTML = '<div class="suggestion-item" style="color:#999;">Sin resultados</div>';
+                suggestionsDiv.classList.add('show');
                 return;
             }
 
-            suggestionsDiv.innerHTML = filtered.map(emp => 
-                `<div class="suggestion-item" onclick="selectEmployee('${emp["Nombre preferido"]} (ID: ${emp["Empl ID"]})')">
-                    ${emp["Nombre preferido"]} (ID: ${emp["Empl ID"]})
-                </div>`
-            ).join('');
-
+            suggestionsDiv.innerHTML = '';
+            filtered.forEach(emp => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.textContent = `${emp.nombre} (ID: ${emp.id})`;
+                item.addEventListener('click', () => selectEmployee(emp));
+                suggestionsDiv.appendChild(item);
+            });
             suggestionsDiv.classList.add('show');
         }
 
-        function selectEmployee(text) {
-            const parts = text.split(' (ID: ');
-            const nombre = parts[0];
-            const id = parts[1].replace(')', '');
-
-            const filtered = hcData.filter(emp => emp["Nombre preferido"] === nombre && emp["Empl ID"] == id);
-
-            if (filtered.length > 0) {
-                currentEmployee = JSON.parse(JSON.stringify(filtered[0]));
-                originalEmployee = JSON.parse(JSON.stringify(filtered[0]));
-                populateEmployeeForm();
-                document.getElementById('suggestions').classList.remove('show');
-                document.getElementById('employee-search').value = nombre;
-                document.getElementById('emp-domicilio').value = ''; // Limpiar domicilio editable
-                updateLetterPreview();
-            }
+        function selectEmployee(emp) {
+            currentEmployee = JSON.parse(JSON.stringify(emp));
+            originalEmployee = JSON.parse(JSON.stringify(emp));
+            populateEmployeeForm();
+            document.getElementById('suggestions').classList.remove('show');
+            document.getElementById('employee-search').value = emp.nombre || '';
+            document.getElementById('emp-domicilio').value = '';
+            updateLetterPreview();
         }
 
         function populateEmployeeForm() {
             if (!currentEmployee) return;
+            document.getElementById('emp-nombre').value = currentEmployee.nombre || '';
+            document.getElementById('emp-id').value = currentEmployee.id || '';
+            document.getElementById('emp-fecha-ingreso').value = formatDate(currentEmployee.fechaIngreso) || '';
+            document.getElementById('emp-puesto').value = currentEmployee.puesto || '';
 
-            // Limpiar primero todos los campos
-            document.getElementById('emp-nombre').value = '';
-            document.getElementById('emp-id').value = '';
-            document.getElementById('emp-fecha-ingreso').value = '';
-            document.getElementById('emp-puesto').value = '';
-            document.getElementById('emp-imss').value = '';
-            document.getElementById('emp-salario').value = '';
+            const imssRaw = String(currentEmployee.imss || '');
+            document.getElementById('emp-imss').value = imssRaw.replace(/\(MEX-NSS\)/gi, '').trim();
 
-            // Luego llenarlos con los datos actuales
-            document.getElementById('emp-nombre').value = currentEmployee["Nombre preferido"] || "";
-            document.getElementById('emp-id').value = currentEmployee["Empl ID"] || "";
-            
-            // Buscar la fecha de contratación en diferentes columnas posibles
-            let fechaContratacion = currentEmployee["Fecha de contratación"] || 
-                                   currentEmployee["fecha de contratación"] ||
-                                   currentEmployee["Fecha Contratación"] ||
-                                   currentEmployee["fecha contratación"] || "";
-            document.getElementById('emp-fecha-ingreso').value = formatDate(fechaContratacion) || "";
-            
-            document.getElementById('emp-puesto').value = currentEmployee["Título de actividad"] || "";
-            
-            // Extraer solo los números del IMSS (remover "MEX-NSS")
-            let imssRaw = currentEmployee["Mexico - IMSS"] || "";
-            let imssSolo = imssRaw.replace(/\(MEX-NSS\)/g, '').trim();
-            document.getElementById('emp-imss').value = imssSolo;
-            
-            const salarioDiario = parseFloat(currentEmployee["Salario Diario"] || 0);
-            const salarioMensual = (salarioDiario * 30.4).toFixed(2);
-            // Formatear con comas
-            const salarioFormateado = parseFloat(salarioMensual).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const salarioDiario = parseFloat(currentEmployee.salarioDiario || 0) || 0;
+            const salarioMensual = salarioDiario * 30.4;
+            const salarioFormateado = salarioMensual.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('emp-salario').value = `$${salarioFormateado}`;
 
             const today = new Date().toISOString().split('T')[0];
@@ -748,90 +947,15 @@
             if (originalEmployee) {
                 currentEmployee = JSON.parse(JSON.stringify(originalEmployee));
                 populateEmployeeForm();
+                document.getElementById('emp-domicilio').value = '';
                 updateLetterPreview();
-                showAlert('Datos restaurados al original', 'success');
+                showAlert('Datos restaurados', 'success');
             }
         }
 
-        async function downloadWordFromTemplate() {
-            if (!currentEmployee) {
-                showAlert('Selecciona un empleado primero', 'error');
-                return;
-            }
-
-            try {
-                const letterType = document.querySelector('input[name="letter-type"]:checked').value;
-                const nombre = document.getElementById('emp-nombre').value;
-                const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
-                const puesto = document.getElementById('emp-puesto').value;
-                const salario = document.getElementById('emp-salario').value;
-                const imss = document.getElementById('emp-imss').value;
-                const domicilio = document.getElementById('emp-domicilio').value;
-                const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
-
-                showAlert('⏳ Generando documento...', 'info');
-
-                const fileMap = {
-                    'consulado': 'Carta_Consulado.docx',
-                    'fonacot': 'Carta_Fonacot.docx',
-                    'recomendacion': 'Carta_Recomendacion.docx'
-                };
-
-                const templateUrl = `${GITHUB_RAW_URL}/${fileMap[letterType]}`;
-
-                const response = await fetch(templateUrl);
-                if (!response.ok) {
-                    showAlert('No se pudo cargar la plantilla. Verifica que esté en GitHub.', 'error');
-                    return;
-                }
-
-                const arrayBuffer = await response.arrayBuffer();
-                const zip = new JSZip();
-                await zip.loadAsync(arrayBuffer);
-
-                let xmlContent = await zip.file('word/document.xml').async('text');
-
-                // Reemplazar placeholders según el tipo de carta
-                if (letterType === 'consulado') {
-                    xmlContent = xmlContent.replace(/FECHA DEL DIA/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/NOMBRE DEL EMPLEADO/g, nombre);
-                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
-                    xmlContent = xmlContent.replace(/PUESTO DEL EMPLEADO/g, puesto);
-                    xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
-                    xmlContent = xmlContent.replace(/SALARIO MENSUAL/g, salario.replace('$', '').trim());
-                } else if (letterType === 'fonacot') {
-                    xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
-                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
-                    xmlContent = xmlContent.replace(/PUESTO DEL TRABAJADOR/g, puesto);
-                    xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
-                    xmlContent = xmlContent.replace(/\$ SALARIO MENSUAL/g, `$ ${salario.replace('$', '').trim()}`);
-                } else if (letterType === 'recomendacion') {
-                    xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/FECHA DEL REALIZACION/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
-                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
-                    xmlContent = xmlContent.replace(/FECHA DE TERMINACION LABORAL/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/PUESTO DEL TRABAJADOR/g, puesto);
-                }
-
-                zip.file('word/document.xml', xmlContent);
-
-                const newBlob = await zip.generateAsync({ type: 'blob' });
-
-                const url = window.URL.createObjectURL(newBlob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Carta_${letterType}_${currentEmployee["Empl ID"]}.docx`;
-                a.click();
-                window.URL.revokeObjectURL(url);
-
-                showAlert('✅ Carta descargada correctamente', 'success');
-            } catch (e) {
-                showAlert('Error al generar carta: ' + e.message, 'error');
-            }
-        }
-
+        // ====================================================================
+        // CARTAS
+        // ====================================================================
         function updateLetterPreview() {
             if (!currentEmployee) {
                 document.getElementById('preview-text').textContent = 'Selecciona un empleado y tipo de carta para ver la vista previa';
@@ -910,149 +1034,223 @@ Generalista de Recursos Humanos`;
             document.getElementById('preview-text').textContent = content;
         }
 
-        function loadBajasData() {
-            try {
-                const stored = localStorage.getItem('bajasData');
-                if (stored) {
-                    bajasData = JSON.parse(stored);
-                }
-                document.getElementById('total-bajas').textContent = bajasData.length;
-            } catch (e) {
-                showAlert('Error al cargar bajas: ' + e.message, 'error');
-            }
-        }
-
-        function exportBajasExcel() {
-            if (bajasData.length === 0) {
-                showAlert('No hay bajas para exportar', 'error');
+        async function downloadWordFromTemplate() {
+            if (!currentEmployee) {
+                showAlert('Selecciona un empleado primero', 'error');
                 return;
             }
 
+            try {
+                const letterType = document.querySelector('input[name="letter-type"]:checked').value;
+                const nombre = document.getElementById('emp-nombre').value;
+                const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
+                const puesto = document.getElementById('emp-puesto').value;
+                const salario = document.getElementById('emp-salario').value;
+                const imss = document.getElementById('emp-imss').value;
+                const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
+
+                showAlert('⏳ Generando documento...', 'info', 2000);
+
+                const fileMap = {
+                    'consulado': 'Carta_Consulado.docx',
+                    'fonacot': 'Carta_Fonacot.docx',
+                    'recomendacion': 'Carta_Recomendacion.docx'
+                };
+
+                const templateUrl = `${GITHUB_RAW_URL}/${fileMap[letterType]}`;
+                const response = await fetch(templateUrl);
+                if (!response.ok) {
+                    showAlert('No se pudo cargar la plantilla. Verifica GitHub.', 'error');
+                    return;
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                const zip = new JSZip();
+                await zip.loadAsync(arrayBuffer);
+                let xmlContent = await zip.file('word/document.xml').async('text');
+
+                if (letterType === 'consulado') {
+                    xmlContent = xmlContent.replace(/FECHA DEL DIA/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/NOMBRE DEL EMPLEADO/g, nombre);
+                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
+                    xmlContent = xmlContent.replace(/PUESTO DEL EMPLEADO/g, puesto);
+                    xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
+                    xmlContent = xmlContent.replace(/SALARIO MENSUAL/g, salario.replace('$', '').trim());
+                } else if (letterType === 'fonacot') {
+                    xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
+                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
+                    xmlContent = xmlContent.replace(/PUESTO DEL TRABAJADOR/g, puesto);
+                    xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
+                    xmlContent = xmlContent.replace(/\$ SALARIO MENSUAL/g, `$ ${salario.replace('$', '').trim()}`);
+                } else if (letterType === 'recomendacion') {
+                    xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/FECHA DEL REALIZACION/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
+                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
+                    xmlContent = xmlContent.replace(/FECHA DE TERMINACION LABORAL/g, fechaCarta);
+                    xmlContent = xmlContent.replace(/PUESTO DEL TRABAJADOR/g, puesto);
+                }
+
+                zip.file('word/document.xml', xmlContent);
+                const newBlob = await zip.generateAsync({ type: 'blob' });
+
+                const url = window.URL.createObjectURL(newBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Carta_${letterType}_${currentEmployee.id}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                showAlert('✅ Carta descargada', 'success');
+            } catch (e) {
+                showAlert('Error al generar carta: ' + e.message, 'error');
+            }
+        }
+
+        // ====================================================================
+        // BAJAS
+        // ====================================================================
+        function exportBajasExcel() {
+            if (bajasData.length === 0) { showAlert('No hay bajas para exportar', 'error'); return; }
             const ws = XLSX.utils.json_to_sheet(bajasData);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Bajas");
+            XLSX.utils.book_append_sheet(wb, ws, 'Bajas');
             XLSX.writeFile(wb, 'bajas_' + new Date().toISOString().split('T')[0] + '.xlsx');
-            showAlert('✅ Bajas exportadas como Excel', 'success');
+            showAlert('✅ Bajas exportadas', 'success');
         }
 
         function exportBajasJSON() {
-            if (bajasData.length === 0) {
-                showAlert('No hay bajas para exportar', 'error');
-                return;
-            }
-
+            if (bajasData.length === 0) { showAlert('No hay bajas para exportar', 'error'); return; }
             const json = JSON.stringify(bajasData, null, 2);
             const blob = new Blob([json], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = 'bajas_' + new Date().toISOString().split('T')[0] + '.json';
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
-            showAlert('✅ Bajas exportadas como JSON', 'success');
+            showAlert('✅ Bajas exportadas JSON', 'success');
         }
 
         function showBajasTable() {
-            if (bajasData.length === 0) {
-                showAlert('No hay bajas registradas', 'warning');
-                return;
-            }
-
+            if (bajasData.length === 0) { showAlert('No hay bajas registradas', 'warning'); return; }
             const container = document.getElementById('bajas-table-container');
             const headers = Object.keys(bajasData[0]);
-            
-            let html = '<table style="width:100%; border-collapse: collapse;"><tr>';
-            headers.forEach(h => html += `<th style="border: 1px solid #ddd; padding: 0.5rem; text-align: left; background: #f5f5f5;">${h}</th>`);
-            html += '</tr>';
-            
-            bajasData.forEach(row => {
-                html += '<tr>';
-                headers.forEach(h => html += `<td style="border: 1px solid #ddd; padding: 0.5rem;">${row[h] || '-'}</td>`);
-                html += '</tr>';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'bajas-table-wrapper';
+
+            const table = document.createElement('table');
+            table.className = 'bajas-table';
+
+            const thead = document.createElement('thead');
+            const headRow = document.createElement('tr');
+            headers.forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                headRow.appendChild(th);
             });
-            
-            html += '</table>';
-            container.innerHTML = html;
+            thead.appendChild(headRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+            bajasData.forEach(row => {
+                const tr = document.createElement('tr');
+                headers.forEach(h => {
+                    const td = document.createElement('td');
+                    td.textContent = row[h] != null && row[h] !== '' ? row[h] : '-';
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+            table.appendChild(tbody);
+
+            wrapper.appendChild(table);
+            container.innerHTML = '';
+            container.appendChild(wrapper);
         }
 
-        function formatDate(dateInput) {
-            if (!dateInput) return "";
-            
-            let dateObj;
-            
-            // Si es un número (fecha serial de Excel)
-            if (typeof dateInput === 'number') {
-                // Excel almacena fechas como números: días desde 1/1/1900
-                const excelEpoch = new Date(1900, 0, 1);
-                dateObj = new Date(excelEpoch.getTime() + (dateInput - 1) * 86400000);
-            } 
-            // Si es string en formato DD/MM/YYYY
-            else if (typeof dateInput === 'string' && dateInput.includes('/')) {
-                const parts = dateInput.split('/');
-                if (parts.length === 3) {
-                    // Asumir DD/MM/YYYY
-                    dateObj = new Date(parts[2], parts[1] - 1, parts[0]);
-                } else {
-                    dateObj = new Date(dateInput);
-                }
-            }
-            // Si es string en formato YYYY-MM-DD
-            else if (typeof dateInput === 'string' && dateInput.includes('-')) {
-                dateObj = new Date(dateInput);
-            }
-            else {
-                dateObj = new Date(dateInput);
-            }
-            
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            return dateObj.toLocaleDateString('es-MX', options);
+        // ====================================================================
+        // TABS
+        // ====================================================================
+        function switchTab(tabName, btnEl) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            if (btnEl) btnEl.classList.add('active');
         }
 
-        function formatDateForLetter(dateStr) {
-            if (!dateStr) return new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
-            // Parsear la fecha como YYYY-MM-DD para evitar problemas de zona horaria
-            const [year, month, day] = dateStr.split('-');
-            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            const monthName = monthNames[parseInt(month) - 1];
-            return `${parseInt(day)} de ${monthName}, ${year}`;
-        }
+        // ====================================================================
+        // INIT
+        // ====================================================================
+        function attachEventListeners() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
+            });
 
-        function showAlert(message, type = 'info') {
-            const alert = document.createElement('div');
-            alert.className = `alert ${type}`;
-            alert.textContent = message;
-            document.body.insertBefore(alert, document.body.firstChild);
-            setTimeout(() => alert.remove(), 5000);
-        }
-
-        window.addEventListener('load', async () => {
-            loadHCData();
-            loadBajasData();
-            
-            // Intentar cargar desde Google Sheets
-            const loadedFromSheets = await loadHCFromGoogleSheets();
-            
             const uploadArea = document.getElementById('upload-area');
-            
+            const fileInput = document.getElementById('hc-file');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => handleHCUpload(e.target.files));
+
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
             });
-
             uploadArea.addEventListener('dragleave', () => {
                 uploadArea.classList.remove('dragover');
             });
-
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadArea.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const fileInput = document.getElementById('hc-file');
-                    fileInput.files = files;
-                    handleHCUpload({ target: { files: files } });
+                handleHCUpload(e.dataTransfer.files);
+            });
+
+            document.getElementById('employee-search').addEventListener('input', filterEmployees);
+            document.getElementById('employee-search').addEventListener('focus', filterEmployees);
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-box')) {
+                    document.getElementById('suggestions').classList.remove('show');
                 }
             });
+
+            document.querySelectorAll('input[name="letter-type"]').forEach(r => {
+                r.addEventListener('change', updateLetterPreview);
+            });
+
+            document.getElementById('emp-fecha-carta').addEventListener('change', updateLetterPreview);
+            document.getElementById('emp-domicilio').addEventListener('input', updateLetterPreview);
+
+            document.getElementById('btn-reset-emp').addEventListener('click', resetEmployeeData);
+            document.getElementById('btn-download-word').addEventListener('click', downloadWordFromTemplate);
+            document.getElementById('btn-refresh-hc').addEventListener('click', refreshFromSheets);
+            document.getElementById('btn-export-excel').addEventListener('click', exportBajasExcel);
+            document.getElementById('btn-export-json').addEventListener('click', exportBajasJSON);
+            document.getElementById('btn-show-table').addEventListener('click', showBajasTable);
+
+            document.getElementById('btn-confirm-mapping').addEventListener('click', confirmMapping);
+            document.getElementById('btn-cancel-mapping').addEventListener('click', closeMappingModal);
+        }
+
+        window.addEventListener('load', async () => {
+            attachEventListeners();
+
+            try {
+                const saved = localStorage.getItem('columnMapping');
+                if (saved) columnMapping = JSON.parse(saved);
+            } catch (e) {}
+
+            loadHCFromLocalStorage();
+            loadBajasFromLocalStorage();
+
+            await loadHCFromGoogleSheets();
+            await loadBajasFromGoogleSheets();
         });
     </script>
 </body>
