@@ -614,11 +614,15 @@
             try {
                 showAlert('⏳ Sincronizando con Google Sheets...', 'info');
                 
+                // Obtener headers del primer registro
+                const headers = data.length > 0 ? Object.keys(data[0]) : [];
+                
                 const response = await fetch(GAS_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        action: 'saveHC',
+                        action: 'uploadHC',
+                        headers: headers,
                         data: data
                     })
                 });
@@ -639,7 +643,7 @@
                 const response = await fetch(GAS_URL + '?action=getHC');
                 const result = await response.json();
                 
-                if (result.success && result.data.length > 0) {
+                if (result.success && result.data && result.data.length > 0) {
                     hcData = result.data;
                     localStorage.setItem('hcData', JSON.stringify(hcData));
                     localStorage.setItem('hcLastUpdate', new Date().toLocaleDateString('es-MX'));
