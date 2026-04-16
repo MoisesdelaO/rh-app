@@ -1061,9 +1061,26 @@ Generalista de Recursos Humanos`;
         // Hace un replace en el XML manejando correctamente el texto a insertar
         function replaceInXml(xml, placeholder, value) {
             const safeValue = xmlEscape(value);
-            // Escapar el placeholder para regex
             const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            return xml.replace(new RegExp(escaped, 'g'), safeValue);
+            
+            // Patrón para encontrar el placeholder dentro de un run con negrita
+            // <w:r><w:rPr><w:b/></w:rPr><w:t>PLACEHOLDER</w:t></w:r>
+            const boldPattern = new RegExp(
+                `<w:r>\\s*<w:rPr>\\s*<w:b/>\\s*</w:rPr>\\s*<w:t>${escaped}</w:t>\\s*</w:r>`,
+                'g'
+            );
+            
+            // Reemplazar con versión sin negrita
+            let result = xml.replace(boldPattern, 
+                `<w:r><w:rPr></w:rPr><w:t>${safeValue}</w:t></w:r>`
+            );
+            
+            // Si no encontró el patrón con negrita, hacer reemplazo simple
+            if (result === xml) {
+                result = result.replace(new RegExp(escaped, 'g'), safeValue);
+            }
+            
+            return result;
         }
 
         async function downloadWordFromTemplate() {
