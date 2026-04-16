@@ -499,7 +499,7 @@
         // CONFIG
         // ====================================================================
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/moisesdelao/rh-app/main/templates';
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxkkRb91QKw-c8uyseOk2nRuj1vUWb6x1RRGXQlYpKVzwu5WT6kmupHUkmMO_2zpk3X/exec';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxYtWAQN26sjI3d3Tky8wHLm9yMqztBnwT74n93KwK0vvbuYkLhN8IEjKbIrDF5dNWv/exec';
 
         const FIELD_SYNONYMS = {
             id:           ['empl id','emplid','id empleado','id','numero de empleado','no empleado','employee id'],
@@ -1034,6 +1034,38 @@ Generalista de Recursos Humanos`;
             document.getElementById('preview-text').textContent = content;
         }
 
+        // Escapa caracteres especiales del texto para insertarlo dentro de XML
+        function xmlEscape(str) {
+            return String(str == null ? '' : str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        // Word suele partir el texto en varios <w:r> (runs) por cambios de formato
+        // o autocorrecciones. Esto hace que los placeholders queden cortados
+        // entre etiquetas XML y los replace() no los encuentren.
+        // Esta función une runs contiguos dentro del mismo párrafo cuando
+        // tienen el mismo formato (o cuando es posible fusionarlos sin perder estilo).
+        function mergeRuns(xml) {
+            // Estrategia: extraer el texto "visible" entre runs y unirlo en un solo bloque
+            // por párrafo, para que los placeholders puedan encontrarse aunque estén partidos.
+            // Reemplaza secuencias de </w:t></w:r><w:r>...<w:t> por nada
+            // siempre que no haya saltos de párrafo en medio.
+            return xml.replace(
+                /<\/w:t>\s*<\/w:r>\s*<w:r\b[^>]*>(?:\s*<w:rPr>[\s\S]*?<\/w:rPr>)?\s*<w:t(?:\s[^>]*)?>/g,
+                ''
+            );
+        }
+
+        // Hace un replace en el XML manejando correctamente el texto a insertar
+        function replaceInXml(xml, placeholder, value) {
+            const safeValue = xmlEscape(value);
+            // Escapar el placeholder para regex
+            const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return xml.replace(new RegExp(escaped, 'g'), safeValue);
+        }
+
         async function downloadWordFromTemplate() {
             if (!currentEmployee) {
                 showAlert('Selecciona un empleado primero', 'error');
@@ -1047,7 +1079,13 @@ Generalista de Recursos Humanos`;
                 const puesto = document.getElementById('emp-puesto').value;
                 const salario = document.getElementById('emp-salario').value;
                 const imss = document.getElementById('emp-imss').value;
+                const domicilio = document.getElementById('emp-domicilio').value;
                 const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
+
+                // Debug: avisar si el IMSS viene vacío pero se necesita
+                if ((letterType === 'consulado' || letterType === 'fonacot') && !imss) {
+                    showAlert('⚠️ IMSS vacío — revisa que la columna esté mapeada en HC Data', 'warning', 5000);
+                }
 
                 showAlert('⏳ Generando documento...', 'info', 2000);
 
@@ -1069,27 +1107,36 @@ Generalista de Recursos Humanos`;
                 await zip.loadAsync(arrayBuffer);
                 let xmlContent = await zip.file('word/document.xml').async('text');
 
+                // CRÍTICO: unir runs de Word antes de buscar placeholders
+                xmlContent = mergeRuns(xmlContent);
+
+                const salarioLimpio = salario.replace('$', '').trim();
+
                 if (letterType === 'consulado') {
-                    xmlContent = xmlContent.replace(/FECHA DEL DIA/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/NOMBRE DEL EMPLEADO/g, nombre);
-                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
-                    xmlContent = xmlContent.replace(/PUESTO DEL EMPLEADO/g, puesto);
-                    xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
-                    xmlContent = xmlContent.replace(/SALARIO MENSUAL/g, salario.replace('$', '').trim());
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DEL DIA', fechaCarta);
+                    xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL EMPLEADO', nombre);
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DE INGRESO', fechaIngreso);
+                    xmlContent = replaceInXml(xmlContent, 'PUESTO DEL EMPLEADO', puesto);
+                    xmlContent = replaceInXml(xmlContent, '# NUMERO DEL IMSS', '# ' + imss);
+                    xmlContent = replaceInXml(xmlContent, 'NUMERO DEL IMSS', imss); // fallback si la plantilla no tiene el #
+                    xmlContent = replaceInXml(xmlContent, 'SALARIO MENSUAL', salarioLimpio);
+                    xmlContent = replaceInXml(xmlContent, 'DOMICILIO DEL EMPLEADO', domicilio);
                 } else if (letterType === 'fonacot') {
-                    xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
-                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
-                    xmlContent = xmlContent.replace(/PUESTO DEL TRABAJADOR/g, puesto);
-                    xmlContent = xmlContent.replace(/# NUMERO DEL IMSS/g, `# ${imss}`);
-                    xmlContent = xmlContent.replace(/\$ SALARIO MENSUAL/g, `$ ${salario.replace('$', '').trim()}`);
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DE REALIZACION', fechaCarta);
+                    xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL TRABAJADOR', nombre);
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DE INGRESO', fechaIngreso);
+                    xmlContent = replaceInXml(xmlContent, 'PUESTO DEL TRABAJADOR', puesto);
+                    xmlContent = replaceInXml(xmlContent, '# NUMERO DEL IMSS', '# ' + imss);
+                    xmlContent = replaceInXml(xmlContent, 'NUMERO DEL IMSS', imss);
+                    xmlContent = replaceInXml(xmlContent, '$ SALARIO MENSUAL', '$ ' + salarioLimpio);
+                    xmlContent = replaceInXml(xmlContent, 'SALARIO MENSUAL', salarioLimpio);
                 } else if (letterType === 'recomendacion') {
-                    xmlContent = xmlContent.replace(/FECHA DE REALIZACION/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/FECHA DEL REALIZACION/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/NOMBRE DEL TRABAJADOR/g, nombre);
-                    xmlContent = xmlContent.replace(/FECHA DE INGRESO/g, fechaIngreso);
-                    xmlContent = xmlContent.replace(/FECHA DE TERMINACION LABORAL/g, fechaCarta);
-                    xmlContent = xmlContent.replace(/PUESTO DEL TRABAJADOR/g, puesto);
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DE REALIZACION', fechaCarta);
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DEL REALIZACION', fechaCarta);
+                    xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL TRABAJADOR', nombre);
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DE INGRESO', fechaIngreso);
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DE TERMINACION LABORAL', fechaCarta);
+                    xmlContent = replaceInXml(xmlContent, 'PUESTO DEL TRABAJADOR', puesto);
                 }
 
                 zip.file('word/document.xml', xmlContent);
