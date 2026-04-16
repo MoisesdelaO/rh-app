@@ -539,6 +539,8 @@
         let originalEmployee = null;
 
         const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/moisesdelao/rh-app/main/templates';
+        const GAS_URL = 'https://script.google.com/macros/s/AKfycbxkkRb91QKw-c8uyseOk2nRuj1vUWb6x1RRGXQlYpKVzwu5WT6kmupHUkmMO_2zpk3X/exec';
+        const SHEET_ID = '1maoy6UAczN1eCqfQeQyw89IW0JB_Ex0PLQgCVvGc3tM';
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -595,6 +597,10 @@
                     localStorage.setItem('hcData', JSON.stringify(hcData));
                     localStorage.setItem('hcLastUpdate', new Date().toLocaleDateString('es-MX'));
                     updateHCStatus();
+                    
+                    // Sincronizar con Google Sheets
+                    syncHCToGoogleSheets(jsonData);
+                    
                     showAlert('✅ ' + hcData.length + ' empleados cargados correctamente', 'success');
                 } catch (error) {
                     showAlert('Error al procesar Excel: ' + error.message, 'error');
@@ -602,6 +608,50 @@
             };
 
             reader.readAsArrayBuffer(file);
+        }
+
+        async function syncHCToGoogleSheets(data) {
+            try {
+                showAlert('⏳ Sincronizando con Google Sheets...', 'info');
+                
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'saveHC',
+                        data: data
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('✅ Datos sincronizados con Google Sheets', 'success');
+                } else {
+                    showAlert('⚠️ Datos guardados localmente, pero error en Sheets: ' + result.message, 'warning');
+                }
+            } catch (error) {
+                showAlert('⚠️ Datos guardados localmente. Error de sincronización: ' + error.message, 'warning');
+            }
+        }
+
+        async function loadHCFromGoogleSheets() {
+            try {
+                const response = await fetch(GAS_URL + '?action=getHC');
+                const result = await response.json();
+                
+                if (result.success && result.data.length > 0) {
+                    hcData = result.data;
+                    localStorage.setItem('hcData', JSON.stringify(hcData));
+                    localStorage.setItem('hcLastUpdate', new Date().toLocaleDateString('es-MX'));
+                    updateHCStatus();
+                    showAlert('✅ Datos cargados desde Google Sheets', 'success');
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.log('No se pudo conectar a Google Sheets, usando datos locales');
+                return false;
+            }
         }
 
         function filterEmployees() {
@@ -971,9 +1021,13 @@ Generalista de Recursos Humanos`;
             setTimeout(() => alert.remove(), 5000);
         }
 
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             loadHCData();
             loadBajasData();
+            
+            // Intentar cargar desde Google Sheets
+            const loadedFromSheets = await loadHCFromGoogleSheets();
+            
             const uploadArea = document.getElementById('upload-area');
             
             uploadArea.addEventListener('dragover', (e) => {
