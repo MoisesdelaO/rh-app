@@ -1064,11 +1064,17 @@ Generalista de Recursos Humanos`;
             const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             
             // Patrón flexible: buscar <w:t ...>PLACEHOLDER</w:t>
-            // Captura atributos como xml:space="preserve"
-            return xml.replace(
-                new RegExp(`<w:t[^>]*?>${escaped}</w:t>`, 'g'),
-                `<w:t>${safeValue}</w:t>`
-            );
+            const pattern = new RegExp(`<w:t[^>]*?>${escaped}</w:t>`, 'g');
+            const matches = xml.match(pattern);
+            
+            // DEBUG: loguear si encontró o no
+            if (!matches) {
+                console.warn(`⚠️ NO ENCONTRADO: "${placeholder}"`);
+            } else {
+                console.log(`✅ ENCONTRADO: "${placeholder}" (${matches.length} ocurrencias)`);
+            }
+            
+            return xml.replace(pattern, `<w:t>${safeValue}</w:t>`);
         }
 
         async function downloadWordFromTemplate() {
@@ -1078,7 +1084,11 @@ Generalista de Recursos Humanos`;
             }
 
             try {
+                console.log('🔍 INICIANDO DESCARGA DE PALABRA...');
+                
                 const letterType = document.querySelector('input[name="letter-type"]:checked').value;
+                console.log(`📄 Tipo de carta: ${letterType}`);
+                
                 const nombre = document.getElementById('emp-nombre').value;
                 const fechaIngreso = document.getElementById('emp-fecha-ingreso').value;
                 const puesto = document.getElementById('emp-puesto').value;
@@ -1086,6 +1096,8 @@ Generalista de Recursos Humanos`;
                 const imss = document.getElementById('emp-imss').value;
                 const domicilio = document.getElementById('emp-domicilio').value;
                 const fechaCarta = formatDateForLetter(document.getElementById('emp-fecha-carta').value);
+
+                console.log(`👤 Datos: ${nombre}, ${fechaIngreso}, ${puesto}, ${salario}, ${imss}`);
 
                 // Debug: avisar si el IMSS viene vacío pero se necesita
                 if ((letterType === 'consulado' || letterType === 'fonacot') && !imss) {
@@ -1101,22 +1113,33 @@ Generalista de Recursos Humanos`;
                 };
 
                 const templateUrl = `${GITHUB_RAW_URL}/${fileMap[letterType]}`;
+                console.log(`📥 Descargando plantilla: ${templateUrl}`);
+                
                 const response = await fetch(templateUrl);
                 if (!response.ok) {
+                    console.error(`❌ Error al descargar: ${response.status}`);
                     showAlert('No se pudo cargar la plantilla. Verifica GitHub.', 'error');
                     return;
                 }
+
+                console.log('✅ Plantilla descargada');
 
                 const arrayBuffer = await response.arrayBuffer();
                 const zip = new JSZip();
                 await zip.loadAsync(arrayBuffer);
                 let xmlContent = await zip.file('word/document.xml').async('text');
+                
+                console.log(`📦 XML cargado, tamaño: ${xmlContent.length} caracteres`);
 
                 // CRÍTICO: unir runs de Word antes de buscar placeholders
+                console.log('🔗 Uniendo runs de Word...');
                 xmlContent = mergeRuns(xmlContent);
+                console.log(`✅ Runs unidos, nuevo tamaño: ${xmlContent.length} caracteres`);
 
                 const salarioLimpio = salario.replace('$', '').trim();
 
+                console.log(`\n📝 INICIANDO REEMPLAZOS para ${letterType}...`);
+                
                 if (letterType === 'consulado') {
                     xmlContent = replaceInXml(xmlContent, 'FECHA DEL DIA', fechaCarta);
                     xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL EMPLEADO', nombre);
