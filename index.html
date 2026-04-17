@@ -1132,9 +1132,9 @@ Generalista de Recursos Humanos`;
                 console.log(`📦 XML cargado, tamaño: ${xmlContent.length} caracteres`);
 
                 // CRÍTICO: unir runs de Word antes de buscar placeholders
-                console.log('🔗 Uniendo runs de Word...');
-                xmlContent = mergeRuns(xmlContent);
-                console.log(`✅ Runs unidos, nuevo tamaño: ${xmlContent.length} caracteres`);
+                // console.log('🔗 Uniendo runs de Word...');
+                // xmlContent = mergeRuns(xmlContent);
+                // console.log(`✅ Runs unidos, nuevo tamaño: ${xmlContent.length} caracteres`);
 
                 const salarioLimpio = salario.replace('$', '').trim();
 
