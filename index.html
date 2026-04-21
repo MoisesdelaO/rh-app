@@ -465,6 +465,16 @@
         <div id="historial-bajas" class="tab-content">
             <div class="content">
                 <div class="section">
+                    <h2 class="section-title">Cargar Bajas desde Excel</h2>
+                    <div id="bajas-upload-area" class="upload-area">
+                        <div class="upload-icon">📋</div>
+                        <div class="upload-text">Toca aquí o arrastra el reporte de bajas</div>
+                        <div class="upload-subtext">Formatos: .xlsx, .xls, .csv</div>
+                        <input type="file" id="bajas-file" accept=".xlsx,.xls,.csv">
+                    </div>
+                </div>
+
+                <div class="section">
                     <h2 class="section-title">Historial de bajas</h2>
                     <div class="info-card" style="margin-bottom: 1rem;">
                         <div class="info-label">Total bajas registradas</div>
@@ -481,15 +491,28 @@
         </div>
     </div>
 
-    <!-- MODAL: Mapeo manual de columnas -->
+    <!-- MODAL: Mapeo manual de columnas HC -->
     <div id="mapping-modal" class="modal-overlay">
         <div class="modal">
-            <h3>Mapeo de columnas</h3>
+            <h3>Mapeo de columnas — HC</h3>
             <p class="modal-desc">No pudimos detectar algunas columnas automáticamente. Selecciona cuál columna del Excel corresponde a cada campo. Este mapeo se guardará para las próximas cargas.</p>
             <div id="mapping-rows"></div>
             <div class="btn-group">
                 <button class="btn btn-primary" type="button" id="btn-confirm-mapping">Confirmar y cargar</button>
                 <button class="btn" type="button" id="btn-cancel-mapping">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Mapeo manual de columnas Bajas -->
+    <div id="bajas-mapping-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>Mapeo de columnas — Bajas</h3>
+            <p class="modal-desc">Selecciona cuál columna del reporte corresponde a cada campo. El mapeo se guardará para las próximas cargas.</p>
+            <div id="bajas-mapping-rows"></div>
+            <div class="btn-group">
+                <button class="btn btn-primary" type="button" id="btn-confirm-bajas-mapping">Confirmar y cargar</button>
+                <button class="btn" type="button" id="btn-cancel-bajas-mapping">Cancelar</button>
             </div>
         </div>
     </div>
@@ -519,6 +542,23 @@
             salarioDiario:{ label: 'Salario Diario',   required: true  }
         };
 
+        // Sinónimos para columnas del archivo de Bajas
+        const BAJAS_SYNONYMS = {
+            fechaBaja:    ['fecha efectiva','fecha de baja','fecha baja','termination date','fecha efectiva de baja'],
+            id:           ['id de empleado','emplid','empl id','id empleado','employee id','id'],
+            nombre:       ['preferred name','nombre preferido','nombre','nombre completo','nombre del empleado'],
+            puesto:       ['job title','titulo de actividad','puesto','cargo','posicion'],
+            fechaIngreso: ['fecha de contratacion','fecha contratacion','fecha ingreso','hire date','fecha de contratación']
+        };
+
+        const BAJAS_FIELD_LABELS = {
+            fechaBaja:    { label: 'Fecha de baja',    required: true  },
+            id:           { label: 'ID Empleado',      required: true  },
+            nombre:       { label: 'Nombre',           required: true  },
+            puesto:       { label: 'Puesto',           required: false },
+            fechaIngreso: { label: 'Fecha de ingreso', required: false }
+        };
+
         // ====================================================================
         // STATE
         // ====================================================================
@@ -527,7 +567,9 @@
         let currentEmployee = null;
         let originalEmployee = null;
         let columnMapping = null;
+        let bajasColumnMapping = null;
         let pendingUpload = null;
+        let pendingBajasUpload = null;
 
         // ====================================================================
         // UTILS
@@ -568,11 +610,13 @@
             let dateObj;
 
             if (typeof dateInput === 'number') {
-                // Excel serial — epoch correcto: 1899-12-30
-                const excelEpoch = new Date(Date.UTC(1899, 11, 30));
-                dateObj = new Date(excelEpoch.getTime() + dateInput * 86400000);
+                // Excel serial — convertir via UTC y extraer componentes para evitar desfase de zona horaria
+                const ms = (dateInput - 25569) * 86400000;
+                const tmp = new Date(ms);
+                dateObj = new Date(tmp.getUTCFullYear(), tmp.getUTCMonth(), tmp.getUTCDate());
             } else if (dateInput instanceof Date) {
-                dateObj = dateInput;
+                // Normalizar a medianoche local para evitar desfase UTC
+                dateObj = new Date(dateInput.getFullYear(), dateInput.getMonth(), dateInput.getDate());
             } else if (typeof dateInput === 'string') {
                 const s = dateInput.trim();
                 if (s.includes('/')) {
@@ -606,8 +650,16 @@
                 const d = new Date();
                 return `${d.getDate()} de ${monthNames[d.getMonth()]}, ${d.getFullYear()}`;
             }
-            const [year, month, day] = dateStr.split('-');
-            return `${parseInt(day)} de ${monthNames[parseInt(month) - 1]}, ${year}`;
+            // Usar split directo para evitar conversión UTC→local que genera +1 día
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const day = parseInt(parts[2], 10);
+                const month = parseInt(parts[1], 10);
+                const year = parts[0];
+                return `${day} de ${monthNames[month - 1]}, ${year}`;
+            }
+            const d = new Date(dateStr);
+            return `${d.getDate()} de ${monthNames[d.getMonth()]}, ${d.getFullYear()}`;
         }
 
         // ====================================================================
@@ -1012,6 +1064,12 @@ Atentamente,
 Moises de la O Murillo
 Generalista de Recursos Humanos`;
             } else {
+                // Carta de recomendación: buscar fecha de terminación en bajas
+                const baja = findBaja(currentEmployee);
+                const fechaTerminacion = baja && baja.fechaBaja
+                    ? formatDate(baja.fechaBaja)
+                    : '(fecha de terminación no encontrada — carga el archivo de bajas)';
+
                 content = `JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V.
 
 Torreón, Coahuila a ${fechaCarta}
@@ -1019,7 +1077,7 @@ Torreón, Coahuila a ${fechaCarta}
 A quien corresponda
 Presente
 
-Por medio de la presente hacemos constar que ${nombre} laboró en JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V. desde el ${fechaIngreso}.
+Por medio de la presente hacemos constar que ${nombre} laboró en JOHNSON CONTROLS ENTERPRISES MEXICO S. DE R.L. DE C.V. desde el ${fechaIngreso} al ${fechaTerminacion}.
 
 ${nombre} tuvo como último puesto ${puesto} bajo un horario rotativo quincenal.
 
@@ -1132,9 +1190,10 @@ Generalista de Recursos Humanos`;
                 console.log(`📦 XML cargado, tamaño: ${xmlContent.length} caracteres`);
 
                 // CRÍTICO: unir runs de Word antes de buscar placeholders
-                // console.log('🔗 Uniendo runs de Word...');
-                // xmlContent = mergeRuns(xmlContent);
-                // console.log(`✅ Runs unidos, nuevo tamaño: ${xmlContent.length} caracteres`);
+                // Word parte el texto en varios <w:r> cuando hay negritas o cambios de formato
+                console.log('🔗 Uniendo runs de Word...');
+                xmlContent = mergeRuns(xmlContent);
+                console.log(`✅ Runs unidos, nuevo tamaño: ${xmlContent.length} caracteres`);
 
                 const salarioLimpio = salario.replace('$', '').trim();
 
@@ -1158,11 +1217,19 @@ Generalista de Recursos Humanos`;
                     xmlContent = replaceInXml(xmlContent, '$ SALARIO MENSUAL', '$ ' + salarioLimpio);
                     xmlContent = replaceInXml(xmlContent, 'SALARIO MENSUAL', salarioLimpio);
                 } else if (letterType === 'recomendacion') {
+                    // Buscar fecha de terminación real en bajasData
+                    const baja = findBaja(currentEmployee);
+                    let fechaTerminacion = fechaCarta; // fallback a fecha de carta
+                    if (baja && baja.fechaBaja) {
+                        fechaTerminacion = formatDate(baja.fechaBaja);
+                    } else {
+                        showAlert('⚠️ No se encontró la baja de este empleado. Verifica que el archivo de bajas esté cargado.', 'warning', 6000);
+                    }
                     xmlContent = replaceInXml(xmlContent, 'FECHA DE REALIZACION', fechaCarta);
                     xmlContent = replaceInXml(xmlContent, 'FECHA DEL REALIZACION', fechaCarta);
                     xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL TRABAJADOR', nombre);
                     xmlContent = replaceInXml(xmlContent, 'FECHA DE INGRESO', fechaIngreso);
-                    xmlContent = replaceInXml(xmlContent, 'FECHA DE TERMINACION LABORAL', fechaCarta);
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DE TERMINACION LABORAL', fechaTerminacion);
                     xmlContent = replaceInXml(xmlContent, 'PUESTO DEL TRABAJADOR', puesto);
                 }
 
@@ -1185,8 +1252,191 @@ Generalista de Recursos Humanos`;
         }
 
         // ====================================================================
-        // BAJAS
+        // BAJAS - CARGA DESDE EXCEL
         // ====================================================================
+        function detectBajasColumns(excelHeaders) {
+            const mapping = {};
+            const normalizedHeaders = excelHeaders.map(h => ({ original: h, normalized: normalize(h) }));
+            for (const [field, synonyms] of Object.entries(BAJAS_SYNONYMS)) {
+                let match = null;
+                for (const synonym of synonyms) {
+                    const found = normalizedHeaders.find(h => h.normalized === synonym);
+                    if (found) { match = found.original; break; }
+                }
+                if (!match) {
+                    for (const synonym of synonyms) {
+                        const found = normalizedHeaders.find(h => h.normalized.includes(synonym));
+                        if (found) { match = found.original; break; }
+                    }
+                }
+                mapping[field] = match;
+            }
+            return mapping;
+        }
+
+        function applyBajasMapping(rawData, mapping) {
+            return rawData.map(row => {
+                const mapped = {};
+                for (const [field, excelCol] of Object.entries(mapping)) {
+                    mapped[field] = excelCol ? (row[excelCol] !== undefined ? row[excelCol] : '') : '';
+                }
+                return mapped;
+            }).filter(r => r.id || r.nombre); // filtrar filas vacías
+        }
+
+        function handleBajasUpload(fileList) {
+            if (!fileList || fileList.length === 0) return;
+            const file = fileList[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+
+                    // El reporte de bajas tiene los headers en fila 1 (índice 0 es metadata)
+                    // Intentar con header: 1 primero para detectar si hay fila de encabezado en fila 2
+                    let jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '', header: 1 });
+
+                    // Detectar fila de encabezados: buscar la fila que contenga columnas clave
+                    let headerRowIdx = 0;
+                    for (let i = 0; i < Math.min(5, jsonData.length); i++) {
+                        const rowNorm = jsonData[i].map(c => normalize(String(c)));
+                        const hasFecha = rowNorm.some(c => c.includes('fecha'));
+                        const hasId = rowNorm.some(c => c.includes('id') || c.includes('empleado'));
+                        const hasNombre = rowNorm.some(c => c.includes('nombre') || c.includes('preferred'));
+                        if (hasFecha && (hasId || hasNombre)) { headerRowIdx = i; break; }
+                    }
+
+                    // Re-parsear con la fila correcta como header
+                    jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                        defval: '',
+                        range: headerRowIdx
+                    });
+
+                    if (jsonData.length === 0) { showAlert('El archivo de bajas está vacío', 'error'); return; }
+
+                    const excelHeaders = Object.keys(jsonData[0]);
+                    let mapping = bajasColumnMapping;
+
+                    if (!mapping) {
+                        const saved = localStorage.getItem('bajasColumnMapping');
+                        if (saved) {
+                            try {
+                                const parsed = JSON.parse(saved);
+                                const stillValid = Object.values(parsed).every(col => col === null || excelHeaders.includes(col));
+                                mapping = stillValid ? parsed : detectBajasColumns(excelHeaders);
+                            } catch(e) { mapping = detectBajasColumns(excelHeaders); }
+                        } else {
+                            mapping = detectBajasColumns(excelHeaders);
+                        }
+                    }
+
+                    // Verificar campos requeridos
+                    const missingRequired = Object.entries(BAJAS_FIELD_LABELS)
+                        .filter(([f, info]) => info.required && !mapping[f])
+                        .map(([f]) => f);
+
+                    if (missingRequired.length > 0) {
+                        // Mostrar modal de mapeo para bajas
+                        showBajasMappingModal(jsonData, excelHeaders, mapping);
+                        return;
+                    }
+
+                    bajasColumnMapping = mapping;
+                    localStorage.setItem('bajasColumnMapping', JSON.stringify(mapping));
+                    const processed = applyBajasMapping(jsonData, mapping);
+                    finalizeBajasUpload(processed);
+
+                } catch (error) {
+                    showAlert('Error al procesar bajas: ' + error.message, 'error');
+                }
+            };
+            reader.onerror = () => showAlert('No se pudo leer el archivo', 'error');
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showBajasMappingModal(rawData, excelHeaders, autoMapping) {
+            pendingBajasUpload = { rawData, excelHeaders };
+            const rowsContainer = document.getElementById('bajas-mapping-rows');
+            rowsContainer.innerHTML = '';
+
+            for (const [field, info] of Object.entries(BAJAS_FIELD_LABELS)) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'mapping-row';
+
+                const label = document.createElement('div');
+                label.className = 'mapping-label';
+                label.innerHTML = escapeHtml(info.label) + (info.required ? ' <span class="req">*</span>' : '');
+
+                const select = document.createElement('select');
+                select.dataset.field = field;
+
+                const emptyOpt = document.createElement('option');
+                emptyOpt.value = '';
+                emptyOpt.textContent = info.required ? '-- Selecciona columna --' : '-- (opcional) --';
+                select.appendChild(emptyOpt);
+
+                excelHeaders.forEach(h => {
+                    const opt = document.createElement('option');
+                    opt.value = h;
+                    opt.textContent = h;
+                    if (autoMapping[field] === h) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                rowDiv.appendChild(label);
+                rowDiv.appendChild(select);
+                rowsContainer.appendChild(rowDiv);
+            }
+
+            document.getElementById('bajas-mapping-modal').classList.add('show');
+        }
+
+        function confirmBajasMapping() {
+            if (!pendingBajasUpload) return;
+            const selects = document.querySelectorAll('#bajas-mapping-rows select');
+            const mapping = {};
+            const missing = [];
+            selects.forEach(sel => {
+                const field = sel.dataset.field;
+                mapping[field] = sel.value || null;
+                if (BAJAS_FIELD_LABELS[field].required && !sel.value) {
+                    missing.push(BAJAS_FIELD_LABELS[field].label);
+                }
+            });
+            if (missing.length > 0) { showAlert('Faltan campos requeridos: ' + missing.join(', '), 'error'); return; }
+            bajasColumnMapping = mapping;
+            localStorage.setItem('bajasColumnMapping', JSON.stringify(mapping));
+            const processed = applyBajasMapping(pendingBajasUpload.rawData, mapping);
+            finalizeBajasUpload(processed);
+            document.getElementById('bajas-mapping-modal').classList.remove('show');
+            pendingBajasUpload = null;
+        }
+
+        function finalizeBajasUpload(processed) {
+            bajasData = processed;
+            localStorage.setItem('bajasData', JSON.stringify(bajasData));
+            document.getElementById('total-bajas').textContent = bajasData.length;
+            showAlert(`✅ ${bajasData.length} bajas cargadas`, 'success');
+        }
+
+        // Busca un empleado en bajasData por ID o nombre
+        function findBaja(empleado) {
+            if (!empleado || bajasData.length === 0) return null;
+            const empId = String(empleado.id || '').trim();
+            const empNombre = normalize(String(empleado.nombre || ''));
+            return bajasData.find(b => {
+                const bajaId = String(b.id || '').trim();
+                const bajaNombre = normalize(String(b.nombre || ''));
+                return (empId && bajaId && empId === bajaId) || (empNombre && bajaNombre && bajaNombre === empNombre);
+            }) || null;
+        }
+
+        // ====================================================================
+        // BAJAS - EXPORTAR
         function exportBajasExcel() {
             if (bajasData.length === 0) { showAlert('No hay bajas para exportar', 'error'); return; }
             const ws = XLSX.utils.json_to_sheet(bajasData);
@@ -1310,6 +1560,25 @@ Generalista de Recursos Humanos`;
 
             document.getElementById('btn-confirm-mapping').addEventListener('click', confirmMapping);
             document.getElementById('btn-cancel-mapping').addEventListener('click', closeMappingModal);
+
+            // Bajas upload
+            const bajasUploadArea = document.getElementById('bajas-upload-area');
+            const bajasFileInput = document.getElementById('bajas-file');
+            bajasUploadArea.addEventListener('click', () => bajasFileInput.click());
+            bajasFileInput.addEventListener('change', (e) => handleBajasUpload(e.target.files));
+            bajasUploadArea.addEventListener('dragover', (e) => { e.preventDefault(); bajasUploadArea.classList.add('dragover'); });
+            bajasUploadArea.addEventListener('dragleave', () => bajasUploadArea.classList.remove('dragover'));
+            bajasUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                bajasUploadArea.classList.remove('dragover');
+                handleBajasUpload(e.dataTransfer.files);
+            });
+
+            document.getElementById('btn-confirm-bajas-mapping').addEventListener('click', confirmBajasMapping);
+            document.getElementById('btn-cancel-bajas-mapping').addEventListener('click', () => {
+                document.getElementById('bajas-mapping-modal').classList.remove('show');
+                pendingBajasUpload = null;
+            });
         }
 
         window.addEventListener('load', async () => {
@@ -1318,6 +1587,11 @@ Generalista de Recursos Humanos`;
             try {
                 const saved = localStorage.getItem('columnMapping');
                 if (saved) columnMapping = JSON.parse(saved);
+            } catch (e) {}
+
+            try {
+                const savedBajas = localStorage.getItem('bajasColumnMapping');
+                if (savedBajas) bajasColumnMapping = JSON.parse(savedBajas);
             } catch (e) {}
 
             loadHCFromLocalStorage();
