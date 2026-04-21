@@ -1100,39 +1100,53 @@ Generalista de Recursos Humanos`;
                 .replace(/>/g, '&gt;');
         }
 
-        // Word suele partir el texto en varios <w:r> (runs) por cambios de formato
-        // o autocorrecciones. Esto hace que los placeholders queden cortados
-        // entre etiquetas XML y los replace() no los encuentren.
-        // Esta función une runs contiguos dentro del mismo párrafo cuando
-        // tienen el mismo formato (o cuando es posible fusionarlos sin perder estilo).
-        function mergeRuns(xml) {
-            // Estrategia: extraer el texto "visible" entre runs y unirlo en un solo bloque
-            // por párrafo, para que los placeholders puedan encontrarse aunque estén partidos.
-            // Reemplaza secuencias de </w:t></w:r><w:r>...<w:t> por nada
-            // siempre que no haya saltos de párrafo en medio.
-            return xml.replace(
-                /<\/w:t>\s*<\/w:r>\s*<w:r\b[^>]*>(?:\s*<w:rPr>[\s\S]*?<\/w:rPr>)?\s*<w:t(?:\s[^>]*)?>/g,
-                ''
-            );
-        }
-
-        // Hace un replace en el XML manejando correctamente el texto a insertar
+        // Estrategia correcta para reemplazar placeholders en Word XML:
+        // En lugar de fusionar runs (lo que destruye el formato/negritas),
+        // reconstruimos el párrafo: localizamos el placeholder en el texto plano
+        // del párrafo y sustituimos solo el contenido de texto, preservando el rPr del primer run.
         function replaceInXml(xml, placeholder, value) {
             const safeValue = xmlEscape(value);
+
+            // 1. Intento directo — placeholder en un solo <w:t>
             const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            
-            // Patrón flexible: buscar <w:t ...>PLACEHOLDER</w:t>
-            const pattern = new RegExp(`<w:t[^>]*?>${escaped}</w:t>`, 'g');
-            const matches = xml.match(pattern);
-            
-            // DEBUG: loguear si encontró o no
-            if (!matches) {
-                console.warn(`⚠️ NO ENCONTRADO: "${placeholder}"`);
-            } else {
-                console.log(`✅ ENCONTRADO: "${placeholder}" (${matches.length} ocurrencias)`);
+            const directPattern = new RegExp(`(<w:t[^>]*?>)${escaped}(</w:t>)`, 'g');
+            if (directPattern.test(xml)) {
+                return xml.replace(directPattern, `$1${safeValue}$2`);
             }
-            
-            return xml.replace(pattern, `<w:t>${safeValue}</w:t>`);
+
+            // 2. Placeholder partido entre varios runs dentro de un <w:p>
+            // Estrategia: por cada párrafo, extraer texto plano, si contiene el placeholder,
+            // reconstruir el párrafo con el valor reemplazado preservando rPr del primer run.
+            return xml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, para => {
+                // Texto plano del párrafo
+                const texts = [];
+                const tPattern = /<w:t[^>]*?>([\s\S]*?)<\/w:t>/g;
+                let m;
+                while ((m = tPattern.exec(para)) !== null) texts.push(m[1]);
+                const fullText = texts.join('');
+
+                if (!fullText.includes(placeholder)) return para;
+
+                // Tomar el rPr del PRIMER run con texto (para negritas, etc.)
+                const firstRunMatch = para.match(/<w:r\b[^>]*>([\s\S]*?)<\/w:r>/);
+                let rPr = '';
+                if (firstRunMatch) {
+                    const rPrMatch = firstRunMatch[1].match(/<w:rPr>[\s\S]*?<\/w:rPr>/);
+                    if (rPrMatch) rPr = rPrMatch[0];
+                }
+
+                // Nuevo texto con placeholder reemplazado
+                const newText = fullText.replace(new RegExp(escaped.replace(/\s+/g, '\\s+'), 'g'), safeValue);
+
+                // Reconstruir párrafo: conservar pPr (formato de párrafo), reemplazar runs de texto
+                const pPrMatch = para.match(/<w:pPr>[\s\S]*?<\/w:pPr>/);
+                const pPr = pPrMatch ? pPrMatch[0] : '';
+
+                // Extraer la etiqueta de apertura del párrafo
+                const pOpen = para.match(/^<w:p\b[^>]*>/)[0];
+
+                return `${pOpen}${pPr}<w:r>${rPr}<w:t xml:space="preserve">${newText}</w:t></w:r></w:p>`;
+            });
         }
 
         async function downloadWordFromTemplate() {
@@ -1188,12 +1202,6 @@ Generalista de Recursos Humanos`;
                 let xmlContent = await zip.file('word/document.xml').async('text');
                 
                 console.log(`📦 XML cargado, tamaño: ${xmlContent.length} caracteres`);
-
-                // CRÍTICO: unir runs de Word antes de buscar placeholders
-                // Word parte el texto en varios <w:r> cuando hay negritas o cambios de formato
-                console.log('🔗 Uniendo runs de Word...');
-                xmlContent = mergeRuns(xmlContent);
-                console.log(`✅ Runs unidos, nuevo tamaño: ${xmlContent.length} caracteres`);
 
                 const salarioLimpio = salario.replace('$', '').trim();
 
@@ -1278,10 +1286,32 @@ Generalista de Recursos Humanos`;
             return rawData.map(row => {
                 const mapped = {};
                 for (const [field, excelCol] of Object.entries(mapping)) {
-                    mapped[field] = excelCol ? (row[excelCol] !== undefined ? row[excelCol] : '') : '';
+                    let val = excelCol ? (row[excelCol] !== undefined ? row[excelCol] : '') : '';
+                    // Normalizar fechas a string YYYY-MM-DD para evitar objetos Date con timezone
+                    if ((field === 'fechaBaja' || field === 'fechaIngreso') && val !== '') {
+                        if (typeof val === 'number') {
+                            // Serial de Excel → YYYY-MM-DD
+                            const tmp = new Date((val - 25569) * 86400000);
+                            const y = tmp.getUTCFullYear();
+                            const m = String(tmp.getUTCMonth() + 1).padStart(2, '0');
+                            const d = String(tmp.getUTCDate()).padStart(2, '0');
+                            val = `${y}-${m}-${d}`;
+                        } else if (val instanceof Date) {
+                            const y = val.getUTCFullYear();
+                            const m = String(val.getUTCMonth() + 1).padStart(2, '0');
+                            const d = String(val.getUTCDate()).padStart(2, '0');
+                            val = `${y}-${m}-${d}`;
+                        } else if (typeof val === 'string') {
+                            // Si viene como ISO string con T, recortar
+                            val = val.split('T')[0];
+                        }
+                    }
+                    // Normalizar ID siempre a string
+                    if (field === 'id') val = String(val).trim();
+                    mapped[field] = val;
                 }
                 return mapped;
-            }).filter(r => r.id || r.nombre); // filtrar filas vacías
+            }).filter(r => r.id || r.nombre);
         }
 
         function handleBajasUpload(fileList) {
@@ -1292,7 +1322,9 @@ Generalista de Recursos Humanos`;
             reader.onload = function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+                    // Sin cellDates:true — las fechas llegan como serial numérico y las convertimos
+                    // a string YYYY-MM-DD en applyBajasMapping, evitando el problema de timezone
+                    const workbook = XLSX.read(data, { type: 'array' });
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
 
@@ -1426,12 +1458,21 @@ Generalista de Recursos Humanos`;
         // Busca un empleado en bajasData por ID o nombre
         function findBaja(empleado) {
             if (!empleado || bajasData.length === 0) return null;
-            const empId = String(empleado.id || '').trim();
+            // Normalizar ID: quitar espacios y convertir a string, también parsear número para comparar sin zeros
+            const empId = String(empleado.id || '').trim().replace(/\.0+$/, '');
             const empNombre = normalize(String(empleado.nombre || ''));
+
             return bajasData.find(b => {
-                const bajaId = String(b.id || '').trim();
+                const bajaId = String(b.id || '').trim().replace(/\.0+$/, '');
                 const bajaNombre = normalize(String(b.nombre || ''));
-                return (empId && bajaId && empId === bajaId) || (empNombre && bajaNombre && bajaNombre === empNombre);
+
+                const idMatch = empId && bajaId && (
+                    empId === bajaId ||
+                    Number(empId) === Number(bajaId) // comparar como número por si uno tiene decimales
+                );
+                // Comparación de nombre: exacta primero, luego partial (apellidos)
+                const nombreExacto = empNombre && bajaNombre && empNombre === bajaNombre;
+                return idMatch || nombreExacto;
             }) || null;
         }
 
