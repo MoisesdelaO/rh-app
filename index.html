@@ -1100,52 +1100,108 @@ Generalista de Recursos Humanos`;
                 .replace(/>/g, '&gt;');
         }
 
-        // Estrategia correcta para reemplazar placeholders en Word XML:
-        // En lugar de fusionar runs (lo que destruye el formato/negritas),
-        // reconstruimos el párrafo: localizamos el placeholder en el texto plano
-        // del párrafo y sustituimos solo el contenido de texto, preservando el rPr del primer run.
+        // Reemplaza un placeholder en el XML de Word de forma quirúrgica:
+        // 1. Intento directo: placeholder en un solo <w:t>
+        // 2. Si está partido entre runs: fusiona SOLO los runs del placeholder,
+        //    dejando intactos el resto de runs del párrafo (preserva formato de cada run)
         function replaceInXml(xml, placeholder, value) {
             const safeValue = xmlEscape(value);
+            const esc = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-            // 1. Intento directo — placeholder en un solo <w:t>
-            const escaped = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const directPattern = new RegExp(`(<w:t[^>]*?>)${escaped}(</w:t>)`, 'g');
-            if (directPattern.test(xml)) {
-                return xml.replace(directPattern, `$1${safeValue}$2`);
+            // --- Intento 1: placeholder en un solo <w:t> ---
+            const directPat = new RegExp(`(<w:t(?:\\s[^>]*)?>)(${esc})(</w:t>)`, 'g');
+            if (directPat.test(xml)) {
+                return xml.replace(directPat, `$1${safeValue}$3`);
             }
 
-            // 2. Placeholder partido entre varios runs dentro de un <w:p>
-            // Estrategia: por cada párrafo, extraer texto plano, si contiene el placeholder,
-            // reconstruir el párrafo con el valor reemplazado preservando rPr del primer run.
-            return xml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, para => {
-                // Texto plano del párrafo
-                const texts = [];
-                const tPattern = /<w:t[^>]*?>([\s\S]*?)<\/w:t>/g;
+            // --- Intento 2: placeholder partido entre runs dentro de un párrafo ---
+            // Para cada párrafo, verificar si el texto concatenado contiene el placeholder
+            return xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, para => {
+                // Extraer todos los runs con su contenido completo
+                const runPattern = /(<w:r\b[^>]*>)([\s\S]*?)(<\/w:r>)/g;
+                const runs = [];
                 let m;
-                while ((m = tPattern.exec(para)) !== null) texts.push(m[1]);
-                const fullText = texts.join('');
-
-                if (!fullText.includes(placeholder)) return para;
-
-                // Tomar el rPr del PRIMER run con texto (para negritas, etc.)
-                const firstRunMatch = para.match(/<w:r\b[^>]*>([\s\S]*?)<\/w:r>/);
-                let rPr = '';
-                if (firstRunMatch) {
-                    const rPrMatch = firstRunMatch[1].match(/<w:rPr>[\s\S]*?<\/w:rPr>/);
-                    if (rPrMatch) rPr = rPrMatch[0];
+                while ((m = runPattern.exec(para)) !== null) {
+                    const runContent = m[2];
+                    // Extraer texto visible del run
+                    const tMatch = runContent.match(/<w:t[^>]*?>([\s\S]*?)<\/w:t>/);
+                    runs.push({
+                        full: m[0],        // el run completo como string
+                        open: m[1],        // <w:r ...>
+                        content: m[2],     // interior del run
+                        close: m[3],       // </w:r>
+                        text: tMatch ? tMatch[1] : ''
+                    });
                 }
 
-                // Nuevo texto con placeholder reemplazado
-                const newText = fullText.replace(new RegExp(escaped.replace(/\s+/g, '\\s+'), 'g'), safeValue);
+                // Texto plano concatenado
+                const fullText = runs.map(r => r.text).join('');
+                if (!fullText.includes(placeholder)) return para;
 
-                // Reconstruir párrafo: conservar pPr (formato de párrafo), reemplazar runs de texto
-                const pPrMatch = para.match(/<w:pPr>[\s\S]*?<\/w:pPr>/);
-                const pPr = pPrMatch ? pPrMatch[0] : '';
+                // Encontrar qué runs cubren el placeholder
+                const pStart = fullText.indexOf(placeholder);
+                const pEnd = pStart + placeholder.length;
+                let charCount = 0;
+                let startRunIdx = -1, endRunIdx = -1;
+                let startCharInRun = 0, endCharInRun = 0;
 
-                // Extraer la etiqueta de apertura del párrafo
-                const pOpen = para.match(/^<w:p\b[^>]*>/)[0];
+                for (let i = 0; i < runs.length; i++) {
+                    const rLen = runs[i].text.length;
 
-                return `${pOpen}${pPr}<w:r>${rPr}<w:t xml:space="preserve">${newText}</w:t></w:r></w:p>`;
+                    if (startRunIdx === -1 && charCount + rLen > pStart) {
+                        startRunIdx = i;
+                        startCharInRun = pStart - charCount;
+                    }
+                    if (startRunIdx !== -1 && endRunIdx === -1 && charCount + rLen >= pEnd) {
+                        endRunIdx = i;
+                        endCharInRun = pEnd - charCount;
+                        break;
+                    }
+                    charCount += rLen;
+                }
+
+                if (startRunIdx === -1 || endRunIdx === -1) return para;
+
+                // Reconstruir runs: antes del placeholder, el valor, después del placeholder
+                let newPara = para;
+                const involvedRuns = runs.slice(startRunIdx, endRunIdx + 1);
+                const originalSegment = involvedRuns.map(r => r.full).join('');
+
+                // Tomar el rPr del run donde EMPIEZA el placeholder
+                const startRunContent = runs[startRunIdx].content;
+                const rPrMatch = startRunContent.match(/<w:rPr>[\s\S]*?<\/w:rPr>/);
+
+                // Texto antes del placeholder en el primer run involucrado
+                const textBefore = runs[startRunIdx].text.substring(0, startCharInRun);
+                // Texto después del placeholder en el último run involucrado
+                const textAfter = runs[endRunIdx].text.substring(endCharInRun);
+
+                // Construir el rPr sin negrita para el valor reemplazado
+                // (remover <w:b/> y <w:bCs/> para que el dato no quede en negrita)
+                let rPrConBold = rPrMatch ? rPrMatch[0] : '';
+                // rPr sin negrita: para el texto del valor usamos el rPr sin w:b
+                let rPrSinBold = rPrConBold
+                    .replace(/<w:b\s*\/>/g, '')
+                    .replace(/<w:bCs\s*\/>/g, '');
+                // Si el rPr quedó vacío después de quitar bold, omitirlo
+                if (rPrSinBold === '<w:rPr></w:rPr>') rPrSinBold = '';
+
+                let replacement = '';
+                // Run con texto previo (mismo formato que el run original)
+                if (textBefore) {
+                    replacement += `${runs[startRunIdx].open}${rPrConBold}<w:t xml:space="preserve">${xmlEscape(textBefore)}</w:t>${runs[startRunIdx].close}`;
+                }
+                // Run con el valor reemplazado (sin negrita)
+                replacement += `<w:r>${rPrSinBold}<w:t xml:space="preserve">${safeValue}</w:t></w:r>`;
+                // Run con texto posterior (mismo formato que el run del final)
+                if (textAfter) {
+                    const endRPrMatch = runs[endRunIdx].content.match(/<w:rPr>[\s\S]*?<\/w:rPr>/);
+                    const endRPr = endRPrMatch ? endRPrMatch[0] : '';
+                    replacement += `${runs[endRunIdx].open}${endRPr}<w:t xml:space="preserve">${xmlEscape(textAfter)}</w:t>${runs[endRunIdx].close}`;
+                }
+
+                // Reemplazar el segmento de runs involucrados en el párrafo
+                return newPara.replace(originalSegment, replacement);
             });
         }
 
