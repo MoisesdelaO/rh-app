@@ -1100,108 +1100,93 @@ Generalista de Recursos Humanos`;
                 .replace(/>/g, '&gt;');
         }
 
-        // Reemplaza un placeholder en el XML de Word de forma quirúrgica:
-        // 1. Intento directo: placeholder en un solo <w:t>
-        // 2. Si está partido entre runs: fusiona SOLO los runs del placeholder,
-        //    dejando intactos el resto de runs del párrafo (preserva formato de cada run)
+        // Reemplaza texto dentro de <w:t> tags en el XML de Word.
+        // Maneja tanto placeholders en un solo run como partidos entre varios runs.
+        // Preserva el formato (rPr) de cada run original — NO reconstruye párrafos.
         function replaceInXml(xml, placeholder, value) {
             const safeValue = xmlEscape(value);
-            const esc = placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-            // --- Intento 1: placeholder en un solo <w:t> ---
-            const directPat = new RegExp(`(<w:t(?:\\s[^>]*)?>)(${esc})(</w:t>)`, 'g');
-            if (directPat.test(xml)) {
-                return xml.replace(directPat, `$1${safeValue}$3`);
+            // Intento 1: placeholder exacto en un solo <w:t> (con o sin espacios extra)
+            // Captura el texto completo del w:t y reemplaza solo la parte del placeholder
+            const singleRunPat = new RegExp(
+                `(<w:t(?:\\s[^>]*)?>)([^<]*)(${esc(placeholder)})([^<]*)(</w:t>)`, 'g'
+            );
+            if (singleRunPat.test(xml)) {
+                return xml.replace(singleRunPat, (_, open, pre, _ph, post, close) =>
+                    `${open}${pre}${safeValue}${post}${close}`
+                );
             }
 
-            // --- Intento 2: placeholder partido entre runs dentro de un párrafo ---
-            // Para cada párrafo, verificar si el texto concatenado contiene el placeholder
+            // Intento 2: placeholder partido entre runs dentro del mismo párrafo.
+            // Estrategia: por párrafo, concatenar textos de todos los <w:t>,
+            // si contiene el placeholder → reconstruir SOLO los runs del span del placeholder.
             return xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, para => {
-                // Extraer todos los runs con su contenido completo
-                const runPattern = /(<w:r\b[^>]*>)([\s\S]*?)(<\/w:r>)/g;
+                // Extraer todos los runs con texto
                 const runs = [];
+                const runPat = /(<w:r\b[^>]*>)([\s\S]*?)(<\/w:r>)/g;
                 let m;
-                while ((m = runPattern.exec(para)) !== null) {
-                    const runContent = m[2];
-                    // Extraer texto visible del run
-                    const tMatch = runContent.match(/<w:t[^>]*?>([\s\S]*?)<\/w:t>/);
+                while ((m = runPat.exec(para)) !== null) {
+                    const inner = m[2];
+                    const tMatch = inner.match(/<w:t[^>]*?>([\s\S]*?)<\/w:t>/);
                     runs.push({
-                        full: m[0],        // el run completo como string
-                        open: m[1],        // <w:r ...>
-                        content: m[2],     // interior del run
-                        close: m[3],       // </w:r>
-                        text: tMatch ? tMatch[1] : ''
+                        full: m[0],
+                        open: m[1],
+                        inner: m[2],
+                        close: m[3],
+                        text: tMatch ? tMatch[1] : '',
+                        tOpen: tMatch ? (inner.match(/(<w:t[^>]*?>)/)?.[1] || '<w:t>') : '',
                     });
                 }
 
-                // Texto plano concatenado
                 const fullText = runs.map(r => r.text).join('');
                 if (!fullText.includes(placeholder)) return para;
 
-                // Encontrar qué runs cubren el placeholder
+                // Localizar start/end del placeholder en el texto concatenado
                 const pStart = fullText.indexOf(placeholder);
                 const pEnd = pStart + placeholder.length;
-                let charCount = 0;
-                let startRunIdx = -1, endRunIdx = -1;
-                let startCharInRun = 0, endCharInRun = 0;
 
+                let charCount = 0, startIdx = -1, endIdx = -1;
+                let startOff = 0, endOff = 0;
                 for (let i = 0; i < runs.length; i++) {
-                    const rLen = runs[i].text.length;
-
-                    if (startRunIdx === -1 && charCount + rLen > pStart) {
-                        startRunIdx = i;
-                        startCharInRun = pStart - charCount;
+                    const len = runs[i].text.length;
+                    if (startIdx === -1 && charCount + len > pStart) {
+                        startIdx = i; startOff = pStart - charCount;
                     }
-                    if (startRunIdx !== -1 && endRunIdx === -1 && charCount + rLen >= pEnd) {
-                        endRunIdx = i;
-                        endCharInRun = pEnd - charCount;
-                        break;
+                    if (startIdx !== -1 && endIdx === -1 && charCount + len >= pEnd) {
+                        endIdx = i; endOff = pEnd - charCount; break;
                     }
-                    charCount += rLen;
+                    charCount += len;
                 }
+                if (startIdx === -1 || endIdx === -1) return para;
 
-                if (startRunIdx === -1 || endRunIdx === -1) return para;
+                // Texto antes y después del placeholder dentro de sus runs
+                const textBefore = runs[startIdx].text.slice(0, startOff);
+                const textAfter  = runs[endIdx].text.slice(endOff);
 
-                // Reconstruir runs: antes del placeholder, el valor, después del placeholder
-                let newPara = para;
-                const involvedRuns = runs.slice(startRunIdx, endRunIdx + 1);
-                const originalSegment = involvedRuns.map(r => r.full).join('');
+                // Obtener rPr del run donde está el placeholder (para conservar su formato)
+                const getRPr = (runInner) => {
+                    const m = runInner.match(/<w:rPr>[\s\S]*?<\/w:rPr>/);
+                    return m ? m[0] : '';
+                };
 
-                // Tomar el rPr del run donde EMPIEZA el placeholder
-                const startRunContent = runs[startRunIdx].content;
-                const rPrMatch = startRunContent.match(/<w:rPr>[\s\S]*?<\/w:rPr>/);
+                const startRPr = getRPr(runs[startIdx].inner);
+                const endRPr   = getRPr(runs[endIdx].inner);
 
-                // Texto antes del placeholder en el primer run involucrado
-                const textBefore = runs[startRunIdx].text.substring(0, startCharInRun);
-                // Texto después del placeholder en el último run involucrado
-                const textAfter = runs[endRunIdx].text.substring(endCharInRun);
-
-                // Construir el rPr sin negrita para el valor reemplazado
-                // (remover <w:b/> y <w:bCs/> para que el dato no quede en negrita)
-                let rPrConBold = rPrMatch ? rPrMatch[0] : '';
-                // rPr sin negrita: para el texto del valor usamos el rPr sin w:b
-                let rPrSinBold = rPrConBold
-                    .replace(/<w:b\s*\/>/g, '')
-                    .replace(/<w:bCs\s*\/>/g, '');
-                // Si el rPr quedó vacío después de quitar bold, omitirlo
-                if (rPrSinBold === '<w:rPr></w:rPr>') rPrSinBold = '';
-
+                // Construir el segmento de reemplazo
                 let replacement = '';
-                // Run con texto previo (mismo formato que el run original)
                 if (textBefore) {
-                    replacement += `${runs[startRunIdx].open}${rPrConBold}<w:t xml:space="preserve">${xmlEscape(textBefore)}</w:t>${runs[startRunIdx].close}`;
+                    replacement += `${runs[startIdx].open}${startRPr}<w:t xml:space="preserve">${xmlEscape(textBefore)}</w:t>${runs[startIdx].close}`;
                 }
-                // Run con el valor reemplazado (sin negrita)
-                replacement += `<w:r>${rPrSinBold}<w:t xml:space="preserve">${safeValue}</w:t></w:r>`;
-                // Run con texto posterior (mismo formato que el run del final)
+                // El valor va con el rPr del run donde empieza (conserva negrita si aplica)
+                replacement += `${runs[startIdx].open}${startRPr}<w:t xml:space="preserve">${safeValue}</w:t>${runs[startIdx].close}`;
                 if (textAfter) {
-                    const endRPrMatch = runs[endRunIdx].content.match(/<w:rPr>[\s\S]*?<\/w:rPr>/);
-                    const endRPr = endRPrMatch ? endRPrMatch[0] : '';
-                    replacement += `${runs[endRunIdx].open}${endRPr}<w:t xml:space="preserve">${xmlEscape(textAfter)}</w:t>${runs[endRunIdx].close}`;
+                    replacement += `${runs[endIdx].open}${endRPr}<w:t xml:space="preserve">${xmlEscape(textAfter)}</w:t>${runs[endIdx].close}`;
                 }
 
-                // Reemplazar el segmento de runs involucrados en el párrafo
-                return newPara.replace(originalSegment, replacement);
+                // Reemplazar los runs involucrados (startIdx..endIdx) por el nuevo segmento
+                const involvedOriginal = runs.slice(startIdx, endIdx + 1).map(r => r.full).join('');
+                return para.replace(involvedOriginal, replacement);
             });
         }
 
@@ -1264,14 +1249,24 @@ Generalista de Recursos Humanos`;
                 console.log(`\n📝 INICIANDO REEMPLAZOS para ${letterType}...`);
                 
                 if (letterType === 'consulado') {
+                    // Placeholders exactos según el XML de la plantilla:
+                    // - "FECHA DEL DIA" en run bold (es el texto completo del w:t)
+                    // - "NOMBRE DEL EMPLEADO " con espacio trailing
+                    // - "FECHA DE INGRESO." con punto al final
+                    // - " PUESTO DEL EMPLEADO" con espacio al inicio
+                    // - "NUMERO DEL IMSS" en run bold (el # está en run separado, no tocar)
+                    // - " SALARIO MENSUAL" con espacio al inicio ($ en run aparte)
+                    // - ": _____" es el domicilio placeholder en la plantilla
                     xmlContent = replaceInXml(xmlContent, 'FECHA DEL DIA', fechaCarta);
-                    xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL EMPLEADO', nombre);
-                    xmlContent = replaceInXml(xmlContent, 'FECHA DE INGRESO', fechaIngreso);
-                    xmlContent = replaceInXml(xmlContent, 'PUESTO DEL EMPLEADO', puesto);
-                    xmlContent = replaceInXml(xmlContent, '# NUMERO DEL IMSS', '# ' + imss);
-                    xmlContent = replaceInXml(xmlContent, 'NUMERO DEL IMSS', imss); // fallback si la plantilla no tiene el #
-                    xmlContent = replaceInXml(xmlContent, 'SALARIO MENSUAL', salarioLimpio);
-                    xmlContent = replaceInXml(xmlContent, 'DOMICILIO DEL EMPLEADO', domicilio);
+                    xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL EMPLEADO ', nombre + ' ');
+                    xmlContent = replaceInXml(xmlContent, 'FECHA DE INGRESO.', fechaIngreso + '.');
+                    xmlContent = replaceInXml(xmlContent, ' PUESTO DEL EMPLEADO', ' ' + puesto);
+                    xmlContent = replaceInXml(xmlContent, 'NUMERO DEL IMSS', imss);
+                    xmlContent = replaceInXml(xmlContent, ' SALARIO MENSUAL', ' ' + salarioLimpio);
+                    // Domicilio: reemplazar el "_____ en Torreón" por el domicilio ingresado
+                    if (domicilio) {
+                        xmlContent = replaceInXml(xmlContent, ': _____', ': ' + domicilio);
+                    }
                 } else if (letterType === 'fonacot') {
                     xmlContent = replaceInXml(xmlContent, 'FECHA DE REALIZACION', fechaCarta);
                     xmlContent = replaceInXml(xmlContent, 'NOMBRE DEL TRABAJADOR', nombre);
@@ -1509,6 +1504,27 @@ Generalista de Recursos Humanos`;
             localStorage.setItem('bajasData', JSON.stringify(bajasData));
             document.getElementById('total-bajas').textContent = bajasData.length;
             showAlert(`✅ ${bajasData.length} bajas cargadas`, 'success');
+            // Sincronizar a Google Sheets para persistencia entre sesiones
+            syncBajasToGoogleSheets(processed);
+        }
+
+        async function syncBajasToGoogleSheets(data) {
+            try {
+                showAlert('⏳ Guardando bajas en Sheets...', 'info', 2000);
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'uploadBajas', data: data })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showAlert('✅ Bajas guardadas en Google Sheets', 'success');
+                } else {
+                    showAlert('⚠️ Bajas guardadas localmente. Error en Sheets: ' + (result.error || ''), 'warning');
+                }
+            } catch (e) {
+                showAlert('⚠️ Bajas guardadas localmente. Sin conexión a Sheets.', 'warning');
+            }
         }
 
         // Busca un empleado en bajasData por ID o nombre
