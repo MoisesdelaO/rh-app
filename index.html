@@ -13,6 +13,8 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- JSZip para manipular archivos Word -->
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    <!-- PDF.js para leer finiquitos en PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { -webkit-text-size-adjust: 100%; }
@@ -47,6 +49,7 @@
         .header-text { flex: 1; min-width: 0; }
         h1 { font-size: 22px; font-weight: 600; color: #222; margin-bottom: 0.15rem; line-height: 1.2; }
         .subtitle { font-size: 12px; color: #666; }
+        #btn-volver-menu { white-space: nowrap; }
 
         .container {
             max-width: 1400px;
@@ -329,6 +332,60 @@
         }
         .bajas-table tr:last-child td { border-bottom: none; }
 
+        /* Menú principal */
+        .app-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            max-width: 560px;
+            margin: 0 auto;
+        }
+        .app-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: box-shadow 0.15s, border-color 0.15s;
+        }
+        .app-card:hover, .app-card:focus { box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-color: #ccc; outline: none; }
+        .app-card-icon {
+            width: 52px; height: 52px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 14px;
+        }
+        .app-card-title { font-size: 14px; font-weight: 600; color: #222; margin-bottom: 4px; }
+        .app-card-desc { font-size: 11px; color: #999; }
+
+        @media (max-width: 480px) {
+            .app-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Finiquitos: chips de navegación entre empleados */
+        .finiquito-chips {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 1.25rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+        }
+        .finiquito-chip {
+            background: #f0f0f0;
+            color: #666;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 16px;
+            white-space: nowrap;
+            cursor: pointer;
+            border: none;
+            flex-shrink: 0;
+        }
+        .finiquito-chip.active { background: #2196F3; color: white; }
+        .finiquito-chip.done::after { content: ' ✓'; }
+
         /* Tablet */
         @media (max-width: 900px) {
             .content { padding: 1.25rem; }
@@ -357,7 +414,7 @@
 </head>
 <body>
     <header>
-        <div class="app-icon" aria-hidden="true">
+        <div class="app-icon" aria-hidden="true" id="header-icon">
             <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
                 <rect x="12" y="8" width="40" height="48" rx="4" fill="white" opacity="0.95"/>
                 <rect x="18" y="18" width="28" height="2.5" rx="1" fill="#2196F3" opacity="0.9"/>
@@ -367,14 +424,36 @@
             </svg>
         </div>
         <div class="header-text">
-            <h1>Generador de Cartas HR</h1>
-            <p class="subtitle">Consulado · FONACOT · Recomendación</p>
+            <h1 id="header-title">Hub de Recursos Humanos</h1>
+            <p class="subtitle" id="header-subtitle">Selecciona una herramienta</p>
         </div>
+        <button id="btn-volver-menu" class="btn" type="button" style="display:none; flex-shrink:0;">&larr; Menú</button>
     </header>
 
     <div id="alert-container"></div>
 
-    <div class="container">
+    <!-- MENU PRINCIPAL -->
+    <div id="menu-principal" class="container" style="padding: 1.5rem;">
+        <div class="app-grid">
+            <div class="app-card" id="app-card-cartas" tabindex="0" role="button">
+                <div class="app-card-icon" style="background:#E6F1FB;">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#185FA5" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+                </div>
+                <div class="app-card-title">Generación de cartas</div>
+                <div class="app-card-desc">Consulado · FONACOT · Recomendación</div>
+            </div>
+            <div class="app-card" id="app-card-finiquitos" tabindex="0" role="button">
+                <div class="app-card-icon" style="background:#E1F5EE;">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#0F6E56" stroke-width="1.8"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M9 13h6M9 17h4"/><circle cx="9.5" cy="9.5" r="1.5"/></svg>
+                </div>
+                <div class="app-card-title">Entrega de finiquitos</div>
+                <div class="app-card-desc">Sube el PDF, genera el convenio</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- APP: GENERACION DE CARTAS -->
+    <div id="app-cartas" class="container" style="display:none;">
         <div class="tabs" role="tablist">
             <button class="tab-btn active" data-tab="generar-cartas" type="button">Generar Cartas</button>
             <button class="tab-btn" data-tab="datos-hc" type="button">HC Data</button>
@@ -488,6 +567,55 @@
                 </div>
                 <div id="bajas-table-container" style="margin-top: 1.25rem;"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- APP: ENTREGA DE FINIQUITOS -->
+    <div id="app-finiquitos" class="container" style="display:none;">
+        <div class="content">
+
+            <div class="section" id="finiquito-step-upload">
+                <h2 class="section-title">1. Subir PDF de finiquitos</h2>
+                <div id="finiquito-upload-area" class="upload-area">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Toca aquí o arrastra el PDF de finiquitos</div>
+                    <div class="upload-subtext">Puede contener uno o varios finiquitos</div>
+                    <input type="file" id="finiquito-file" accept=".pdf">
+                </div>
+            </div>
+
+            <div class="section" id="finiquito-step-revisar" style="display:none;">
+                <h2 class="section-title">2. Revisar y generar convenios</h2>
+
+                <div id="finiquito-chips" class="finiquito-chips"></div>
+
+                <div class="info-card" style="margin-bottom:1rem;">
+                    <div class="info-label">PDF cargado</div>
+                    <div class="info-value" style="font-size:14px;" id="finiquito-pdf-name">-</div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group"><label>Nombre</label><input type="text" id="fq-nombre"></div>
+                    <div class="form-group"><label>No. de empleado</label><input type="text" id="fq-empid"></div>
+                    <div class="form-group"><label>Puesto</label><input type="text" id="fq-puesto"></div>
+                    <div class="form-group"><label>Fecha de ingreso</label><input type="text" id="fq-fecha-ingreso"></div>
+                    <div class="form-group"><label>Salario diario</label><input type="text" id="fq-salario"></div>
+                    <div class="form-group"><label>Fecha de baja</label><input type="text" id="fq-fecha-baja"></div>
+                    <div class="form-group"><label>Total neto</label><input type="text" id="fq-neto"></div>
+                    <div class="form-group"><label>Banco de pago</label><input type="text" id="fq-banco" value="BANORTE"></div>
+                    <div class="form-group"><label>Fecha del convenio</label><input type="date" id="fq-fecha-convenio"></div>
+                </div>
+                <div class="form-group">
+                    <label>Total neto en letra</label>
+                    <input type="text" id="fq-neto-letra">
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" type="button" id="btn-generar-convenio">📄 Generar Convenio (Word)</button>
+                    <button class="btn" type="button" id="btn-finiquito-reset">Cargar otro PDF</button>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -1625,7 +1753,346 @@ Generalista de Recursos Humanos`;
         // ====================================================================
         // INIT
         // ====================================================================
+        // ====================================================================
+        // NAVEGACION ENTRE APPS (MENU PRINCIPAL)
+        // ====================================================================
+        function mostrarMenuPrincipal() {
+            document.getElementById('menu-principal').style.display = 'block';
+            document.getElementById('app-cartas').style.display = 'none';
+            document.getElementById('app-finiquitos').style.display = 'none';
+            document.getElementById('btn-volver-menu').style.display = 'none';
+            document.getElementById('header-title').textContent = 'Hub de Recursos Humanos';
+            document.getElementById('header-subtitle').textContent = 'Selecciona una herramienta';
+            history.replaceState(null, '', '#');
+        }
+
+        function abrirApp(nombre) {
+            document.getElementById('menu-principal').style.display = 'none';
+            document.getElementById('btn-volver-menu').style.display = 'inline-block';
+            if (nombre === 'cartas') {
+                document.getElementById('app-cartas').style.display = 'block';
+                document.getElementById('app-finiquitos').style.display = 'none';
+                document.getElementById('header-title').textContent = 'Generador de Cartas HR';
+                document.getElementById('header-subtitle').textContent = 'Consulado · FONACOT · Recomendación';
+                history.replaceState(null, '', '#cartas');
+            } else if (nombre === 'finiquitos') {
+                document.getElementById('app-cartas').style.display = 'none';
+                document.getElementById('app-finiquitos').style.display = 'block';
+                document.getElementById('header-title').textContent = 'Entrega de Finiquitos';
+                document.getElementById('header-subtitle').textContent = 'Convenio de terminación laboral';
+                history.replaceState(null, '', '#finiquitos');
+            }
+        }
+
+        function initNavegacionApps() {
+            document.getElementById('app-card-cartas').addEventListener('click', () => abrirApp('cartas'));
+            document.getElementById('app-card-cartas').addEventListener('keydown', e => { if (e.key === 'Enter') abrirApp('cartas'); });
+            document.getElementById('app-card-finiquitos').addEventListener('click', () => abrirApp('finiquitos'));
+            document.getElementById('app-card-finiquitos').addEventListener('keydown', e => { if (e.key === 'Enter') abrirApp('finiquitos'); });
+            document.getElementById('btn-volver-menu').addEventListener('click', mostrarMenuPrincipal);
+
+            if (location.hash === '#cartas') abrirApp('cartas');
+            else if (location.hash === '#finiquitos') abrirApp('finiquitos');
+        }
+
+        // ====================================================================
+        // FINIQUITOS -> CONVENIO DE TERMINACION
+        // ====================================================================
+        const FQ_TEMPLATE_FILE = 'Convenio_Terminacion_de_Trabajo.docx';
+        let fqEmpleados = [];
+        let fqIndexActivo = -1;
+
+        function fqGet(lines, regex) {
+            for (const l of lines) {
+                const m = l.match(regex);
+                if (m) return m[1].trim();
+            }
+            return '';
+        }
+
+        function fqReconstructLines(items) {
+            const lines = new Map();
+            for (const it of items) {
+                const y = Math.round(it.transform[5]);
+                if (!lines.has(y)) lines.set(y, []);
+                lines.get(y).push(it);
+            }
+            const sortedY = Array.from(lines.keys()).sort((a, b) => b - a);
+            const result = [];
+            for (const y of sortedY) {
+                const rowItems = lines.get(y).sort((a, b) => a.transform[4] - b.transform[4]);
+                let line = '';
+                let lastEndX = null;
+                for (const it of rowItems) {
+                    const x = it.transform[4];
+                    if (lastEndX !== null && x - lastEndX > 2 && !line.endsWith(' ') && it.str !== '') {
+                        line += ' ';
+                    }
+                    line += it.str;
+                    lastEndX = x + (it.width || 0);
+                }
+                result.push(line.replace(/\s+/g, ' ').trim());
+            }
+            return result.filter(l => l.length > 0);
+        }
+
+        function fqParsePage(lines) {
+            const empLine = lines.find(l => l.startsWith('No. de Empleado:'));
+            let empId = '', nombre = '';
+            if (empLine) {
+                const m = empLine.match(/No\. de Empleado:\s*(\S+)\s+(.*)/);
+                if (m) { empId = m[1]; nombre = m[2].trim(); }
+            }
+
+            const nss = fqGet(lines, /N\.S\.S\.:\s*(.+)/);
+            const rfc = fqGet(lines, /R\.F\.C\.:\s*(.+)/);
+            const fechaIngreso = fqGet(lines, /Fecha de Ingreso:\s*(.+)/);
+            const fechaBaja = fqGet(lines, /Fecha de Baja:\s*(.+)/);
+            const salarioBase = fqGet(lines, /Salario Base:\s*(.+)/);
+            const puesto = fqGet(lines, /Puesto:\s*(.+)/);
+
+            const totalesLine = lines.find(l => l.startsWith('Totales'));
+            let totalPercepciones = '', totalDeducciones = '';
+            if (totalesLine) {
+                const m = totalesLine.match(/Totales\.+:\s*([\d,]+\.\d{2})\s+([\d,]+\.\d{2})/);
+                if (m) { totalPercepciones = m[1]; totalDeducciones = m[2]; }
+            }
+
+            const netoLine = lines.find(l => l.startsWith('Neto'));
+            let neto = '';
+            if (netoLine) {
+                const m = netoLine.match(/Neto\.+:\s*\$?([\d,]+\.\d{2})/);
+                if (m) neto = m[1];
+            }
+
+            const netoIdx = lines.indexOf(netoLine);
+            let netoLetra = '';
+            if (netoIdx !== -1 && lines[netoIdx + 1] && lines[netoIdx + 1].startsWith('(')) {
+                netoLetra = lines[netoIdx + 1].replace(/^\(|\)\s*$/g, '').trim();
+                const PALABRAS_VALIDAS = new Set(['Y', 'DE', 'M.N.', 'PESOS', '100', 'M', 'N']);
+                netoLetra = netoLetra.replace(/([A-ZÁÉÍÓÚÑ]{2,})\s+([A-ZÁÉÍÓÚÑ]{1,2})(?=\s|$)/g, (full, a, b) => {
+                    if (PALABRAS_VALIDAS.has(b)) return full;
+                    return a + b;
+                });
+                netoLetra = netoLetra.replace(/\s+/g, ' ').trim();
+            }
+
+            return {
+                empId, nombre, nss, rfc, fechaIngreso, fechaBaja, salarioBase, puesto,
+                totalPercepciones, totalDeducciones, neto, netoLetra
+            };
+        }
+
+        async function fqProcesarPDF(file) {
+            showAlert('⏳ Leyendo PDF...', 'info', 2000);
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+
+            const empleados = [];
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const lines = fqReconstructLines(content.items);
+                if (!lines.some(l => l.startsWith('No. de Empleado:'))) continue;
+                const parsed = fqParsePage(lines);
+                empleados.push(parsed);
+            }
+
+            if (empleados.length === 0) {
+                showAlert('No se detectó ningún finiquito en el PDF', 'error');
+                return;
+            }
+
+            fqEmpleados = empleados.map(e => ({
+                ...e,
+                banco: 'BANORTE',
+                fechaConvenio: new Date().toISOString().split('T')[0],
+                generado: false
+            }));
+            fqIndexActivo = 0;
+
+            document.getElementById('finiquito-pdf-name').textContent = file.name;
+            document.getElementById('finiquito-step-upload').style.display = 'none';
+            document.getElementById('finiquito-step-revisar').style.display = 'block';
+
+            fqRenderChips();
+            fqMostrarEmpleado(0);
+            showAlert(`✅ ${empleados.length} finiquito(s) detectado(s)`, 'success');
+        }
+
+        function fqRenderChips() {
+            const cont = document.getElementById('finiquito-chips');
+            cont.innerHTML = '';
+            fqEmpleados.forEach((emp, idx) => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'finiquito-chip' + (idx === fqIndexActivo ? ' active' : '') + (emp.generado ? ' done' : '');
+                chip.textContent = `${idx + 1}. ${emp.nombre.split(' ').slice(0, 2).join(' ')}`;
+                chip.addEventListener('click', () => { fqGuardarEdicionActual(); fqMostrarEmpleado(idx); });
+                cont.appendChild(chip);
+            });
+        }
+
+        function fqGuardarEdicionActual() {
+            if (fqIndexActivo === -1) return;
+            const emp = fqEmpleados[fqIndexActivo];
+            emp.nombre = document.getElementById('fq-nombre').value;
+            emp.empId = document.getElementById('fq-empid').value;
+            emp.puesto = document.getElementById('fq-puesto').value;
+            emp.fechaIngreso = document.getElementById('fq-fecha-ingreso').value;
+            emp.salarioBase = document.getElementById('fq-salario').value;
+            emp.fechaBaja = document.getElementById('fq-fecha-baja').value;
+            emp.neto = document.getElementById('fq-neto').value;
+            emp.banco = document.getElementById('fq-banco').value;
+            emp.fechaConvenio = document.getElementById('fq-fecha-convenio').value;
+            emp.netoLetra = document.getElementById('fq-neto-letra').value;
+        }
+
+        function fqMostrarEmpleado(idx) {
+            fqIndexActivo = idx;
+            const emp = fqEmpleados[idx];
+            document.getElementById('fq-nombre').value = emp.nombre;
+            document.getElementById('fq-empid').value = emp.empId;
+            document.getElementById('fq-puesto').value = emp.puesto;
+            document.getElementById('fq-fecha-ingreso').value = emp.fechaIngreso;
+            document.getElementById('fq-salario').value = emp.salarioBase;
+            document.getElementById('fq-fecha-baja').value = emp.fechaBaja;
+            document.getElementById('fq-neto').value = emp.neto;
+            document.getElementById('fq-banco').value = emp.banco;
+            document.getElementById('fq-fecha-convenio').value = emp.fechaConvenio;
+            document.getElementById('fq-neto-letra').value = emp.netoLetra;
+            fqRenderChips();
+        }
+
+        function fqFormatFechaLarga(fechaStr) {
+            const monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            if (!fechaStr) return '';
+            const parts = fechaStr.split('-');
+            if (parts.length === 3) {
+                const day = parseInt(parts[2], 10);
+                const month = parseInt(parts[1], 10);
+                const year = parts[0];
+                return `${day} días de ${monthNames[month - 1]} de ${year}`;
+            }
+            return fechaStr;
+        }
+
+        function fqFormatFechaCorta(fechaStr) {
+            const monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+            if (!fechaStr) return '';
+            const parts = fechaStr.split('-');
+            if (parts.length === 3) {
+                const day = parseInt(parts[2], 10);
+                const month = parseInt(parts[1], 10);
+                const year = parts[0];
+                return `${day} de ${monthNames[month - 1]} de ${year}.`;
+            }
+            return fechaStr;
+        }
+
+        async function fqGenerarConvenio() {
+            fqGuardarEdicionActual();
+            const emp = fqEmpleados[fqIndexActivo];
+
+            if (!emp.nombre || !emp.neto) {
+                showAlert('Faltan datos del empleado (nombre o neto)', 'error');
+                return;
+            }
+
+            try {
+                showAlert('⏳ Generando convenio...', 'info', 2000);
+
+                const templateUrl = `${GITHUB_RAW_URL}/${FQ_TEMPLATE_FILE}`;
+                const response = await fetch(templateUrl);
+                if (!response.ok) {
+                    showAlert('No se pudo cargar la plantilla del convenio. Verifica GitHub.', 'error');
+                    return;
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                const zip = new JSZip();
+                await zip.loadAsync(arrayBuffer);
+                let xmlContent = await zip.file('word/document.xml').async('text');
+
+                const nombreNormal = emp.nombre.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+                const nombreMayus = emp.nombre.toUpperCase();
+                const salarioLimpio = String(emp.salarioBase).replace('$', '').trim();
+                const netoLimpio = String(emp.neto).replace('$', '').trim();
+                const fechaConvenioLarga = fqFormatFechaLarga(emp.fechaConvenio);
+                const fechaConvenioCorta = fqFormatFechaCorta(emp.fechaConvenio);
+                const fechaIngresoTexto = ' ' + (emp.fechaIngreso || '').split('/').reverse().join('-');
+
+                xmlContent = replaceInXml(xmlContent, '22 días de junio de 2026', fechaConvenioLarga);
+                xmlContent = replaceInXml(xmlContent, 'Jose Ruben Ceniceros Ramirez', nombreNormal);
+                xmlContent = replaceInXml(xmlContent, 'JOSE RUBEN CENICEROS RAMIREZ', nombreMayus);
+                xmlContent = replaceInXml(xmlContent, ' 09 de junio del 2026', ' ' + (emp.fechaIngreso || ''));
+                xmlContent = replaceInXml(xmlContent, 'Ingeniero de Procesos', emp.puesto);
+                xmlContent = replaceInXml(xmlContent, '$1,872.99', '$' + salarioLimpio);
+                xmlContent = replaceInXml(xmlContent, '$84,952.40', '$' + netoLimpio);
+                xmlContent = replaceInXml(xmlContent, '(OCHENTA Y CUATRO MIL NOVECIENTOS CINCUENTA Y  DOS PESOS 40/100 M.N.)  ', '(' + emp.netoLetra + ')  ');
+                xmlContent = replaceInXml(xmlContent, 'BANORTE', emp.banco);
+                xmlContent = replaceInXml(xmlContent, '22 de junio de 2026.', fechaConvenioCorta);
+
+                // Nota: la tabla de percepciones/deducciones (imagen) se deja igual que en la
+                // plantilla. Moises la reemplaza manualmente pegando el recorte del finiquito,
+                // igual que hace actualmente.
+
+                zip.file('word/document.xml', xmlContent);
+                const newBlob = await zip.generateAsync({ type: 'blob' });
+
+                const url = window.URL.createObjectURL(newBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                const fechaArchivo = new Date().toISOString().split('T')[0];
+                a.download = `Convenio_${emp.nombre.replace(/\s+/g, '_')}_${fechaArchivo}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+
+                emp.generado = true;
+                fqRenderChips();
+                showAlert('✅ Convenio descargado', 'success');
+            } catch (e) {
+                showAlert('Error al generar convenio: ' + e.message, 'error');
+            }
+        }
+
+        function fqResetFiniquito() {
+            fqEmpleados = [];
+            fqIndexActivo = -1;
+            document.getElementById('finiquito-step-upload').style.display = 'block';
+            document.getElementById('finiquito-step-revisar').style.display = 'none';
+            document.getElementById('finiquito-file').value = '';
+        }
+
+        function initFiniquitos() {
+            const uploadArea = document.getElementById('finiquito-upload-area');
+            const fileInput = document.getElementById('finiquito-file');
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files[0]) fqProcesarPDF(e.target.files[0]);
+            });
+            uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+            uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files[0]) fqProcesarPDF(e.dataTransfer.files[0]);
+            });
+
+            document.getElementById('btn-generar-convenio').addEventListener('click', fqGenerarConvenio);
+            document.getElementById('btn-finiquito-reset').addEventListener('click', fqResetFiniquito);
+
+            const fechaConvenioInput = document.getElementById('fq-fecha-convenio');
+            if (!fechaConvenioInput.value) fechaConvenioInput.value = new Date().toISOString().split('T')[0];
+        }
+
         function attachEventListeners() {
+            initNavegacionApps();
+            initFiniquitos();
+
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
             });
