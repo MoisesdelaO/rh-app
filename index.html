@@ -1249,21 +1249,24 @@ Generalista de Recursos Humanos`;
             // Intento 2: placeholder partido entre runs dentro del mismo párrafo.
             // Estrategia: por párrafo, concatenar textos de todos los <w:t>,
             // si contiene el placeholder → reconstruir SOLO los runs del span del placeholder.
+            // Usamos posiciones reales (índice en el string) para no perder tags intermedios
+            // como <w:proofErr/> que Word inserta entre runs.
             return xml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, para => {
-                // Extraer todos los runs con texto
+                // Extraer todos los runs con texto, guardando su posición exacta en `para`
                 const runs = [];
-                const runPat = /(<w:r\b[^>]*>)([\s\S]*?)(<\/w:r>)/g;
+                const runPat = /<w:r\b[^>]*>[\s\S]*?<\/w:r>/g;
                 let m;
                 while ((m = runPat.exec(para)) !== null) {
-                    const inner = m[2];
-                    const tMatch = inner.match(/<w:t[^>]*?>([\s\S]*?)<\/w:t>/);
+                    const full = m[0];
+                    const tMatch = full.match(/<w:t[^>]*?>([\s\S]*?)<\/w:t>/);
                     runs.push({
-                        full: m[0],
-                        open: m[1],
-                        inner: m[2],
-                        close: m[3],
+                        startPos: m.index,
+                        endPos: m.index + full.length,
+                        full,
+                        inner: full,
+                        open: full.match(/^<w:r\b[^>]*>/)[0],
+                        close: '</w:r>',
                         text: tMatch ? tMatch[1] : '',
-                        tOpen: tMatch ? (inner.match(/(<w:t[^>]*?>)/)?.[1] || '<w:t>') : '',
                     });
                 }
 
@@ -1312,9 +1315,13 @@ Generalista de Recursos Humanos`;
                     replacement += `${runs[endIdx].open}${endRPr}<w:t xml:space="preserve">${xmlEscape(textAfter)}</w:t>${runs[endIdx].close}`;
                 }
 
-                // Reemplazar los runs involucrados (startIdx..endIdx) por el nuevo segmento
-                const involvedOriginal = runs.slice(startIdx, endIdx + 1).map(r => r.full).join('');
-                return para.replace(involvedOriginal, replacement);
+                // Reemplazar por POSICIÓN real (startPos del primer run involucrado hasta
+                // endPos del último), preservando cualquier tag intermedio fuera de esos runs
+                // (ej. <w:proofErr/>) que quedaría DENTRO del rango reemplazado — se descarta
+                // intencionalmente ya que son solo marcadores de revisión ortográfica de Word.
+                const rangeStart = runs[startIdx].startPos;
+                const rangeEnd = runs[endIdx].endPos;
+                return para.slice(0, rangeStart) + replacement + para.slice(rangeEnd);
             });
         }
 
