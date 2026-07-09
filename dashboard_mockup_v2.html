@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mockup - Bitácora y Agenda</title>
+<style>
+  :root {
+    --surface-0: #F1EFE8;
+    --surface-1: #F7F6F1;
+    --surface-2: #FFFFFF;
+    --border: #E1DFD6;
+    --text-primary: #2C2C2A;
+    --text-secondary: #5F5E5A;
+    --text-muted: #888780;
+    --accent-bg: #E6F1FB;
+    --accent-text: #0C447C;
+    --accent-fill: #378ADD;
+    --success-bg: #EAF3DE;
+    --success-text: #27500A;
+    --warning-bg: #FAEEDA;
+    --warning-text: #854F0B;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    margin: 0;
+    padding: 24px;
+  }
+  .container { max-width: 1000px; margin: 0 auto; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .topbar h1 { font-size: 18px; font-weight: 500; margin: 0; }
+  .menu-wrap { position: relative; }
+  .menu-btn {
+    border: 1px solid var(--border); background: var(--surface-2); border-radius: var(--radius);
+    width: 34px; height: 34px; cursor: pointer; font-size: 16px; color: var(--text-secondary);
+  }
+  .menu-dropdown {
+    display: none; position: absolute; right: 0; top: 40px; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 10px; min-width: 160px; z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .menu-dropdown.open { display: block; }
+  .menu-item { padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item:hover { background: var(--surface-1); }
+
+  .grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+  .card {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+  }
+  .card-sm { padding: 14px 16px; }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .card-title { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; margin: 0; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: var(--radius); }
+  .badge-accent { background: var(--accent-bg); color: var(--accent-text); }
+  .badge-success { background: var(--success-bg); color: var(--success-text); }
+  .badge-warning { background: var(--warning-bg); color: var(--warning-text); }
+  .entry-row { display: grid; grid-template-columns: 48px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+  .entry-time { font-size: 12px; color: var(--text-muted); padding-top: 2px; }
+  .entry-box { background: var(--surface-1); border-radius: var(--radius); padding: 8px 10px; }
+  .entry-text { font-weight: 500; font-size: 13px; margin: 4px 0 0; }
+
+  .task-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 12px; }
+  .task-row input[type="checkbox"] { width: 14px; height: 14px; }
+  .task-row .task-label { flex: 1; }
+  .task-done { color: var(--text-muted); text-decoration: line-through; }
+  .task-date { font-size: 10px; color: var(--text-muted); background: var(--surface-1); padding: 2px 6px; border-radius: var(--radius); white-space: nowrap; }
+  .add-task-row { display: flex; gap: 6px; margin-top: 8px; }
+  .add-task-row input[type="text"] {
+    flex: 1; font-size: 12px; padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius);
+  }
+  .add-task-row input[type="date"] {
+    font-size: 11px; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius); width: 118px;
+  }
+
+  .btn {
+    border: 1px solid var(--border); background: transparent; border-radius: var(--radius);
+    font-size: 12px; padding: 5px 10px; cursor: pointer; color: var(--text-primary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .btn:hover { background: var(--surface-1); }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; text-align: center; }
+  .cal-day-label { font-size: 10px; color: var(--text-muted); padding: 2px 0; }
+  .cal-day { font-size: 11px; padding: 4px 0; border-radius: 50%; cursor: pointer; }
+  .cal-day:hover { background: var(--surface-1); }
+  .cal-muted { color: var(--text-muted); }
+  .cal-today { background: var(--accent-fill); color: white; font-weight: 500; }
+  .cal-dot { position: relative; }
+  .cal-dot::after {
+    content: ""; position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%);
+    width: 3px; height: 3px; border-radius: 50%; background: var(--accent-fill);
+  }
+  .cal-add-form { display: none; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .cal-add-form.open { display: block; }
+  .cal-add-form input[type="text"] {
+    width: 100%; font-size: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 6px;
+  }
+  .cal-add-form-actions { display: flex; gap: 6px; justify-content: flex-end; }
+
+  .event-row { display: flex; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); }
+  .event-date { width: 32px; text-align: center; flex-shrink: 0; }
+  .event-date .month { font-size: 10px; color: var(--text-muted); margin: 0; }
+  .event-date .day { font-size: 13px; font-weight: 500; margin: 0; }
+  .event-text { font-size: 12px; margin: 0; padding-top: 2px; }
+  .side-stack { display: flex; flex-direction: column; gap: 14px; }
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="topbar">
+    <h1>Mockup — Bitácora y agenda</h1>
+    <div class="menu-wrap">
+      <button class="menu-btn" onclick="toggleMenu()">☰</button>
+      <div class="menu-dropdown" id="menuDropdown">
+        <div class="menu-item">Historial</div>
+        <div class="menu-item">Ajustes</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <div class="card-header">
+        <p class="card-title">📓 Bitácora — jueves 9 de julio</p>
+        <button class="btn">+ Nueva</button>
+      </div>
+
+      <div class="entry-row">
+        <span class="entry-time">08:30</span>
+        <div class="entry-box">
+          <span class="badge badge-accent">Junta</span>
+          <p class="entry-text">Revisión de nómina quincenal</p>
+        </div>
+      </div>
+      <div class="entry-row">
+        <span class="entry-time">10:00</span>
+        <div class="entry-box">
+          <span class="badge badge-success">Tarea</span>
+          <p class="entry-text">Actualizar expedientes de nuevo ingreso</p>
+        </div>
+      </div>
+      <div class="entry-row">
+        <span class="entry-time">12:15</span>
+        <div class="entry-box">
+          <span class="badge badge-warning">Admin</span>
+          <p class="entry-text">Llamada con proveedor de capacitación</p>
+        </div>
+      </div>
+      <div class="entry-row">
+        <span class="entry-time">15:00</span>
+        <div class="entry-box">
+          <span class="badge badge-accent">Junta</span>
+          <p class="entry-text">Entrevista candidato turno B</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-stack">
+
+      <div class="card card-sm">
+        <p class="card-title">✅ Pendientes (3)</p>
+        <div id="taskList">
+          <div class="task-row">
+            <input type="checkbox">
+            <span class="task-label">Enviar reporte de bajas</span>
+            <span class="task-date">sin fecha</span>
+          </div>
+          <div class="task-row">
+            <input type="checkbox">
+            <span class="task-label">Confirmar asistencia a curso</span>
+            <span class="task-date">14 jul</span>
+          </div>
+          <div class="task-row">
+            <input type="checkbox" checked>
+            <span class="task-label task-done">Firmar expediente turno B</span>
+            <span class="task-date">sin fecha</span>
+          </div>
+        </div>
+        <div class="add-task-row">
+          <input type="text" id="newTaskText" placeholder="Nuevo pendiente...">
+          <input type="date" id="newTaskDate">
+          <button class="btn" onclick="addTask()">+</button>
+        </div>
+      </div>
+
+      <div class="card card-sm">
+        <div class="card-header" style="margin-bottom:8px;">
+          <p class="card-title">📅 Julio 2026</p>
+        </div>
+        <div class="cal-grid" id="calGrid">
+          <span class="cal-day-label">L</span><span class="cal-day-label">M</span><span class="cal-day-label">M</span><span class="cal-day-label">J</span><span class="cal-day-label">V</span><span class="cal-day-label">S</span><span class="cal-day-label">D</span>
+          <span class="cal-day" onclick="openCalForm(this,6)">6</span><span class="cal-day" onclick="openCalForm(this,7)">7</span><span class="cal-day" onclick="openCalForm(this,8)">8</span><span class="cal-day cal-today" onclick="openCalForm(this,9)">9</span><span class="cal-day cal-dot" onclick="openCalForm(this,10)">10</span><span class="cal-day cal-muted" onclick="openCalForm(this,11)">11</span><span class="cal-day cal-muted" onclick="openCalForm(this,12)">12</span>
+          <span class="cal-day" onclick="openCalForm(this,13)">13</span><span class="cal-day cal-dot" onclick="openCalForm(this,14)">14</span><span class="cal-day" onclick="openCalForm(this,15)">15</span><span class="cal-day" onclick="openCalForm(this,16)">16</span><span class="cal-day" onclick="openCalForm(this,17)">17</span><span class="cal-day cal-muted" onclick="openCalForm(this,18)">18</span><span class="cal-day cal-muted" onclick="openCalForm(this,19)">19</span>
+        </div>
+        <div class="cal-add-form" id="calAddForm">
+          <p style="font-size:11px; color:var(--text-secondary); margin:0 0 6px;" id="calSelectedDay">Agregar a julio 9</p>
+          <input type="text" id="calEventText" placeholder="Nombre del evento o pendiente...">
+          <div class="cal-add-form-actions">
+            <button class="btn" onclick="closeCalForm()">Cancelar</button>
+            <button class="btn" onclick="saveCalEvent()">Guardar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-sm">
+        <p class="card-title">🕐 Próximos eventos</p>
+        <div class="event-row">
+          <div class="event-date"><p class="month">JUL</p><p class="day">14</p></div>
+          <p class="event-text">Junta con gerencia de planta</p>
+        </div>
+        <div class="event-row">
+          <div class="event-date"><p class="month">JUL</p><p class="day">17</p></div>
+          <p class="event-text">Capacitación seguridad industrial</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleMenu() {
+  document.getElementById('menuDropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  var wrap = document.querySelector('.menu-wrap');
+  if (!wrap.contains(e.target)) {
+    document.getElementById('menuDropdown').classList.remove('open');
+  }
+});
+
+var selectedDay = 9;
+function openCalForm(el, day) {
+  selectedDay = day;
+  document.getElementById('calSelectedDay').textContent = 'Agregar a julio ' + day;
+  document.getElementById('calAddForm').classList.add('open');
+  document.getElementById('calEventText').focus();
+}
+function closeCalForm() {
+  document.getElementById('calAddForm').classList.remove('open');
+  document.getElementById('calEventText').value = '';
+}
+function saveCalEvent() {
+  var text = document.getElementById('calEventText').value.trim();
+  if (!text) return;
+  alert('Se guardaría: "' + text + '" el ' + selectedDay + ' de julio (esto es un mockup, aquí conectaría con la base de datos real).');
+  closeCalForm();
+}
+
+function addTask() {
+  var text = document.getElementById('newTaskText').value.trim();
+  var date = document.getElementById('newTaskDate').value;
+  if (!text) return;
+  var row = document.createElement('div');
+  row.className = 'task-row';
+  var dateLabel = date ? new Date(date + 'T00:00:00').toLocaleDateString('es-MX', {day:'numeric', month:'short'}) : 'sin fecha';
+  row.innerHTML = '<input type="checkbox"><span class="task-label">' + text + '</span><span class="task-date">' + dateLabel + '</span>';
+  document.getElementById('taskList').appendChild(row);
+  document.getElementById('newTaskText').value = '';
+  document.getElementById('newTaskDate').value = '';
+}
+</script>
+</body>
+</html>

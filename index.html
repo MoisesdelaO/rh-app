@@ -435,6 +435,147 @@
             .mapping-row { grid-template-columns: 1fr; gap: 0.4rem; }
             .section { margin-bottom: 1.5rem; }
         }
+
+        /* ============================================================
+           MÓDULO: BITÁCORA Y AGENDA
+           (paleta propia, igual al mockup aprobado — no toca el resto)
+           ============================================================ */
+        #app-bitacora {
+            --bit-surface-0: #F1EFE8;
+            --bit-surface-1: #F7F6F1;
+            --bit-surface-2: #FFFFFF;
+            --bit-border: #E1DFD6;
+            --bit-text-primary: #2C2C2A;
+            --bit-text-secondary: #5F5E5A;
+            --bit-text-muted: #888780;
+            --bit-accent-bg: #E6F1FB;
+            --bit-accent-text: #0C447C;
+            --bit-accent-fill: #378ADD;
+            --bit-success-bg: #EAF3DE;
+            --bit-success-text: #27500A;
+            --bit-warning-bg: #FAEEDA;
+            --bit-warning-text: #854F0B;
+            --bit-danger-text: #A33636;
+            --bit-radius: 8px;
+            --bit-radius-lg: 12px;
+            background: var(--bit-surface-0);
+            padding: 1rem;
+            box-shadow: none;
+        }
+        #app-bitacora .bit-toolbar { display:flex; gap:8px; justify-content:flex-end; margin-bottom:12px; }
+        #app-bitacora .bit-btn {
+            border:1px solid var(--bit-border); background:var(--bit-surface-2); border-radius:var(--bit-radius);
+            font-size:12px; padding:7px 12px; cursor:pointer; color:var(--bit-text-primary);
+            display:inline-flex; align-items:center; gap:6px; min-height:34px; font-family:inherit;
+        }
+        #app-bitacora .bit-btn:hover { background:var(--bit-surface-1); }
+        #app-bitacora .bit-btn-primary { background:var(--bit-text-primary); color:#fff; border-color:var(--bit-text-primary); }
+        #app-bitacora .bit-btn-primary:hover { background:#1e1e1c; }
+        #app-bitacora .bit-btn-icon { width:34px; height:34px; padding:0; justify-content:center; flex-shrink:0; }
+
+        #app-bitacora .bit-grid { display:grid; grid-template-columns:1.3fr 1fr; gap:14px; align-items:start; }
+        #app-bitacora .bit-side-stack { display:flex; flex-direction:column; gap:14px; }
+        #app-bitacora .bit-card { background:var(--bit-surface-2); border:1px solid var(--bit-border); border-radius:var(--bit-radius-lg); padding:16px 18px; }
+        #app-bitacora .bit-card-sm { padding:14px 16px; }
+        #app-bitacora .bit-card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+        #app-bitacora .bit-card-title { display:flex; align-items:center; gap:8px; font-weight:600; font-size:14px; margin:0; color:var(--bit-text-primary); }
+        #app-bitacora .bit-card-subtitle { font-size:11px; color:var(--bit-text-muted); font-weight:400; margin-left:2px; }
+
+        #app-bitacora .bit-badge { font-size:11px; padding:2px 8px; border-radius:var(--bit-radius); font-weight:500; white-space:nowrap; }
+        #app-bitacora .bit-badge-accent { background:var(--bit-accent-bg); color:var(--bit-accent-text); }
+        #app-bitacora .bit-badge-success { background:var(--bit-success-bg); color:var(--bit-success-text); }
+        #app-bitacora .bit-badge-warning { background:var(--bit-warning-bg); color:var(--bit-warning-text); }
+
+        #app-bitacora .bit-filter-row { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+        #app-bitacora .bit-filter-chip { border:1px solid var(--bit-border); background:var(--bit-surface-1); border-radius:20px; font-size:11px; padding:5px 12px; cursor:pointer; color:var(--bit-text-secondary); font-family:inherit; }
+        #app-bitacora .bit-filter-chip.active { background:var(--bit-text-primary); color:#fff; border-color:var(--bit-text-primary); }
+
+        #app-bitacora .bit-entry-list { min-height:40px; }
+        #app-bitacora .bit-entry-row { display:grid; grid-template-columns:48px 1fr; gap:10px; padding:9px 0; border-top:1px solid var(--bit-border); }
+        #app-bitacora .bit-entry-row:first-child { border-top:none; }
+        #app-bitacora .bit-entry-time { font-size:12px; color:var(--bit-text-muted); padding-top:8px; font-variant-numeric:tabular-nums; }
+        #app-bitacora .bit-entry-box { background:var(--bit-surface-1); border-radius:var(--bit-radius); padding:9px 12px; position:relative; }
+        #app-bitacora .bit-entry-text { font-weight:500; font-size:13px; margin:5px 0 0; line-height:1.4; color:var(--bit-text-primary); }
+        #app-bitacora .bit-entry-note { font-size:12px; color:var(--bit-text-secondary); margin:4px 0 0; line-height:1.4; }
+        #app-bitacora .bit-entry-del { position:absolute; top:6px; right:6px; border:none; background:transparent; color:var(--bit-text-muted); cursor:pointer; font-size:13px; padding:2px 6px; border-radius:6px; opacity:0; transition:opacity .15s; }
+        #app-bitacora .bit-entry-box:hover .bit-entry-del { opacity:1; }
+        #app-bitacora .bit-entry-del:hover { background:var(--bit-surface-2); color:var(--bit-danger-text); }
+        #app-bitacora .bit-empty { text-align:center; color:var(--bit-text-muted); font-size:12px; padding:24px 8px; }
+
+        #app-bitacora .bit-task-row { display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid var(--bit-border); font-size:13px; }
+        #app-bitacora .bit-task-row:first-child { border-top:none; }
+        #app-bitacora .bit-task-row input[type="checkbox"] { width:17px; height:17px; flex-shrink:0; cursor:pointer; accent-color:var(--bit-accent-fill); }
+        #app-bitacora .bit-task-label { flex:1; word-break:break-word; color:var(--bit-text-primary); }
+        #app-bitacora .bit-task-done { color:var(--bit-text-muted); text-decoration:line-through; }
+        #app-bitacora .bit-task-date { font-size:10px; color:var(--bit-text-muted); background:var(--bit-surface-1); padding:3px 7px; border-radius:var(--bit-radius); white-space:nowrap; }
+        #app-bitacora .bit-task-date.overdue { color:var(--bit-danger-text); background:#FBE9E9; }
+        #app-bitacora .bit-add-task-row { display:flex; gap:6px; margin-top:10px; }
+        #app-bitacora .bit-add-task-row input[type="text"] { flex:1; font-size:13px; padding:8px 10px; border:1px solid var(--bit-border); border-radius:var(--bit-radius); min-width:0; font-family:inherit; }
+        #app-bitacora .bit-add-task-row input[type="date"] { font-size:11px; padding:7px; border:1px solid var(--bit-border); border-radius:var(--bit-radius); width:118px; flex-shrink:0; font-family:inherit; }
+
+        #app-bitacora .bit-cal-nav { display:flex; align-items:center; gap:8px; }
+        #app-bitacora .bit-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; text-align:center; }
+        #app-bitacora .bit-cal-day-label { font-size:10px; color:var(--bit-text-muted); padding:4px 0; font-weight:500; }
+        #app-bitacora .bit-cal-day { font-size:12px; padding:7px 0; border-radius:50%; cursor:pointer; position:relative; color:var(--bit-text-primary); }
+        #app-bitacora .bit-cal-day:hover { background:var(--bit-surface-1); }
+        #app-bitacora .bit-cal-muted { color:var(--bit-text-muted); opacity:.5; }
+        #app-bitacora .bit-cal-today { background:var(--bit-accent-fill); color:#fff; font-weight:600; }
+        #app-bitacora .bit-cal-selected { outline:2px solid var(--bit-accent-fill); outline-offset:-2px; }
+        #app-bitacora .bit-cal-dot { position:relative; }
+        #app-bitacora .bit-cal-dot::after { content:""; position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:var(--bit-accent-fill); }
+        #app-bitacora .bit-cal-today.bit-cal-dot::after { background:#fff; }
+        #app-bitacora .bit-cal-add-form { display:none; margin-top:12px; border-top:1px solid var(--bit-border); padding-top:12px; }
+        #app-bitacora .bit-cal-add-form.open { display:block; }
+        #app-bitacora .bit-cal-add-form input[type="text"], #app-bitacora .bit-cal-add-form select, #app-bitacora .bit-cal-add-form input[type="time"] {
+            width:100%; font-size:13px; padding:8px 10px; border:1px solid var(--bit-border); border-radius:var(--bit-radius); margin-bottom:8px;
+            font-family:inherit; background:var(--bit-surface-2); color:var(--bit-text-primary);
+        }
+        #app-bitacora .bit-type-row { display:flex; gap:6px; margin-bottom:8px; }
+        #app-bitacora .bit-type-chip { flex:1; text-align:center; border:1px solid var(--bit-border); background:var(--bit-surface-1); border-radius:var(--bit-radius); font-size:11px; padding:7px; cursor:pointer; color:var(--bit-text-secondary); }
+        #app-bitacora .bit-type-chip.active { background:var(--bit-accent-fill); color:#fff; border-color:var(--bit-accent-fill); }
+        #app-bitacora .bit-form-actions { display:flex; gap:6px; justify-content:flex-end; }
+        #app-bitacora .bit-selected-label { font-size:11px; color:var(--bit-text-secondary); margin:0 0 8px; font-weight:500; }
+
+        #app-bitacora .bit-event-row { display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--bit-border); align-items:center; }
+        #app-bitacora .bit-event-row:first-child { border-top:none; }
+        #app-bitacora .bit-event-date { width:36px; text-align:center; flex-shrink:0; }
+        #app-bitacora .bit-event-date .bit-month { font-size:10px; color:var(--bit-text-muted); margin:0; text-transform:uppercase; }
+        #app-bitacora .bit-event-date .bit-day { font-size:15px; font-weight:600; margin:0; color:var(--bit-text-primary); }
+        #app-bitacora .bit-event-body { flex:1; min-width:0; }
+        #app-bitacora .bit-event-text { font-size:13px; margin:0; font-weight:500; color:var(--bit-text-primary); }
+        #app-bitacora .bit-event-del { border:none; background:transparent; color:var(--bit-text-muted); cursor:pointer; font-size:13px; padding:4px 6px; border-radius:6px; flex-shrink:0; }
+        #app-bitacora .bit-event-del:hover { background:var(--bit-surface-1); color:var(--bit-danger-text); }
+
+        .bit-modal-overlay { display:none; position:fixed; inset:0; background:rgba(30,30,28,0.4); z-index:2500; align-items:flex-start; justify-content:center; padding:8vh 16px; }
+        .bit-modal-overlay.show { display:flex; }
+        .bit-modal-box { background:#fff; border-radius:12px; max-width:480px; width:100%; padding:20px; max-height:78vh; overflow-y:auto; }
+        .bit-modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+        .bit-modal-header h3 { font-size:15px; margin:0; }
+        .bit-modal-close { border:none; background:transparent; font-size:18px; cursor:pointer; color:#888780; }
+        .bit-field-label { font-size:12px; font-weight:500; color:#5F5E5A; margin:0 0 6px; display:block; }
+        .bit-modal-box input[type="date"] { width:100%; font-size:13px; padding:8px 10px; border:1px solid #E1DFD6; border-radius:8px; margin-bottom:14px; font-family:inherit; }
+
+        .bit-toast {
+            position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+            background:#2C2C2A; color:#fff; font-size:12px; padding:10px 18px; border-radius:20px;
+            z-index:3000; transition:opacity .2s, transform .2s; pointer-events:none; white-space:nowrap;
+        }
+        .bit-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+        .bit-bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #E1DFD6; z-index:1500; padding:4px 4px calc(4px + env(safe-area-inset-bottom)); }
+        .bit-bottom-nav.active { display:block; }
+        @media (min-width:701px) { .bit-bottom-nav { display:none !important; } }
+        .bit-bottom-nav-inner { display:grid; grid-template-columns:repeat(4,1fr); max-width:600px; margin:0 auto; }
+        .bit-nav-btn { border:none; background:transparent; display:flex; flex-direction:column; align-items:center; gap:3px; padding:8px 2px; cursor:pointer; color:#888780; font-size:10px; min-height:48px; font-family:inherit; }
+        .bit-nav-btn .bit-nav-icon { font-size:18px; }
+        .bit-nav-btn.active { color:#378ADD; }
+
+        @media (max-width:700px) {
+            #app-bitacora .bit-grid { grid-template-columns:1fr; }
+            #app-bitacora [data-bit-section] { display:none; }
+            #app-bitacora [data-bit-section].active-mobile { display:block; }
+            #app-bitacora { padding-bottom:82px; }
+        }
     </style>
 </head>
 <body>
@@ -480,6 +621,13 @@
                 </div>
                 <div class="app-card-title">Reposición de tarjetas</div>
                 <div class="app-card-desc">Banorte · Pluxee</div>
+            </div>
+            <div class="app-card" id="app-card-bitacora" tabindex="0" role="button">
+                <div class="app-card-icon" style="background:#F1EFE8;">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#5F5E5A" stroke-width="1.8"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M8 2v4M16 2v4"/><path d="M7.5 13h3M7.5 16.5h6"/></svg>
+                </div>
+                <div class="app-card-title">Bitácora y agenda</div>
+                <div class="app-card-desc">Registro diario · Pendientes · Calendario</div>
             </div>
         </div>
     </div>
@@ -694,6 +842,111 @@
         </div>
     </div>
 
+    <!-- APP: BITÁCORA Y AGENDA -->
+    <div id="app-bitacora" class="container" style="display:none;">
+        <div class="bit-toolbar">
+            <button class="bit-btn" id="bitOpenHistorial">🗂️ Historial</button>
+            <button class="bit-btn" id="bitOpenAjustes">⚙️ Ajustes</button>
+        </div>
+
+        <div class="bit-grid">
+
+            <!-- BITÁCORA -->
+            <section class="bit-card" data-bit-section="bitacora">
+                <div class="bit-card-header">
+                    <p class="bit-card-title" id="bitBitacoraTitle">📓 Bitácora</p>
+                    <button class="bit-btn bit-btn-primary" type="button" id="bitBtnNuevaEntrada">+ Nueva</button>
+                </div>
+                <div class="bit-filter-row">
+                    <button class="bit-filter-chip active" type="button" data-bit-filter="todos">Todos</button>
+                    <button class="bit-filter-chip" type="button" data-bit-filter="Junta">Junta</button>
+                    <button class="bit-filter-chip" type="button" data-bit-filter="Tarea">Tarea</button>
+                    <button class="bit-filter-chip" type="button" data-bit-filter="Admin">Admin</button>
+                </div>
+
+                <div class="bit-cal-add-form" id="bitEntradaForm">
+                    <input type="time" id="bitEntradaHora">
+                    <div class="bit-type-row">
+                        <div class="bit-type-chip active" data-bit-cat="Junta">Junta</div>
+                        <div class="bit-type-chip" data-bit-cat="Tarea">Tarea</div>
+                        <div class="bit-type-chip" data-bit-cat="Admin">Admin</div>
+                    </div>
+                    <input type="text" id="bitEntradaDescripcion" placeholder="Descripción corta...">
+                    <input type="text" id="bitEntradaNota" placeholder="Nota (opcional)...">
+                    <div class="bit-form-actions">
+                        <button class="bit-btn" type="button" id="bitCancelEntrada">Cancelar</button>
+                        <button class="bit-btn bit-btn-primary" type="button" id="bitSaveEntrada">Guardar</button>
+                    </div>
+                </div>
+
+                <div class="bit-entry-list" id="bitBitacoraList"></div>
+            </section>
+
+            <div class="bit-side-stack">
+
+                <!-- PENDIENTES -->
+                <section class="bit-card bit-card-sm" data-bit-section="pendientes">
+                    <div class="bit-card-header">
+                        <p class="bit-card-title">✅ Pendientes <span class="bit-card-subtitle" id="bitPendientesCount"></span></p>
+                    </div>
+                    <div id="bitTaskList"></div>
+                    <div class="bit-add-task-row">
+                        <input type="text" id="bitNewTaskText" placeholder="Nuevo pendiente...">
+                        <input type="date" id="bitNewTaskDate">
+                        <button class="bit-btn bit-btn-icon" type="button" id="bitBtnAddTask">+</button>
+                    </div>
+                </section>
+
+                <!-- CALENDARIO -->
+                <section class="bit-card bit-card-sm" data-bit-section="calendario">
+                    <div class="bit-card-header">
+                        <p class="bit-card-title" id="bitCalMonthLabel">📅</p>
+                        <div class="bit-cal-nav">
+                            <button class="bit-btn bit-btn-icon" type="button" id="bitCalPrev">‹</button>
+                            <button class="bit-btn bit-btn-icon" type="button" id="bitCalNext">›</button>
+                        </div>
+                    </div>
+                    <div class="bit-cal-grid" id="bitCalGrid"></div>
+                    <div class="bit-cal-add-form" id="bitCalAddForm">
+                        <p class="bit-selected-label" id="bitCalSelectedDay">Agregar</p>
+                        <div class="bit-type-row">
+                            <div class="bit-type-chip active" id="bitCalChipEvento">Evento</div>
+                            <div class="bit-type-chip" id="bitCalChipPendiente">Pendiente</div>
+                        </div>
+                        <input type="text" id="bitCalEventText" placeholder="Título...">
+                        <select id="bitCalEventTipo">
+                            <option value="junta">Junta</option>
+                            <option value="curso">Curso</option>
+                            <option value="limite">Fecha límite</option>
+                        </select>
+                        <div class="bit-form-actions">
+                            <button class="bit-btn" type="button" id="bitCalCancel">Cancelar</button>
+                            <button class="bit-btn bit-btn-primary" type="button" id="bitCalSave">Guardar</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PRÓXIMOS EVENTOS -->
+                <section class="bit-card bit-card-sm" data-bit-section="eventos">
+                    <p class="bit-card-title">🕐 Próximos eventos</p>
+                    <div id="bitEventList"></div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <nav class="bit-bottom-nav" id="bitBottomNav">
+        <div class="bit-bottom-nav-inner">
+            <button class="bit-nav-btn active" type="button" data-bit-view="bitacora"><span class="bit-nav-icon">📓</span>Bitácora</button>
+            <button class="bit-nav-btn" type="button" data-bit-view="pendientes"><span class="bit-nav-icon">✅</span>Pendientes</button>
+            <button class="bit-nav-btn" type="button" data-bit-view="calendario"><span class="bit-nav-icon">📅</span>Calendario</button>
+            <button class="bit-nav-btn" type="button" data-bit-view="eventos"><span class="bit-nav-icon">🕐</span>Eventos</button>
+        </div>
+    </nav>
+
+    <div class="bit-toast" id="bitToast"></div>
+
     <!-- MODAL: Mapeo manual de columnas HC -->
     <div id="mapping-modal" class="modal-overlay">
         <div class="modal">
@@ -716,6 +969,33 @@
             <div class="btn-group">
                 <button class="btn btn-primary" type="button" id="btn-confirm-bajas-mapping">Confirmar y cargar</button>
                 <button class="btn" type="button" id="btn-cancel-bajas-mapping">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Historial de bitácora -->
+    <div class="bit-modal-overlay" id="bitHistorialModal">
+        <div class="bit-modal-box">
+            <div class="bit-modal-header">
+                <h3>🗂️ Historial de bitácora</h3>
+                <button class="bit-modal-close" type="button" data-bit-close="bitHistorialModal">✕</button>
+            </div>
+            <label class="bit-field-label" for="bitHistorialFecha">Ver bitácora del día</label>
+            <input type="date" id="bitHistorialFecha">
+            <div id="bitHistorialList"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: Ajustes de bitácora -->
+    <div class="bit-modal-overlay" id="bitAjustesModal">
+        <div class="bit-modal-box">
+            <div class="bit-modal-header">
+                <h3>⚙️ Ajustes — Bitácora</h3>
+                <button class="bit-modal-close" type="button" data-bit-close="bitAjustesModal">✕</button>
+            </div>
+            <p style="font-size:13px; color:#5F5E5A; margin:0 0 14px; line-height:1.5;">Este módulo usa la misma hoja de cálculo y el mismo backend que el resto del Hub de RH.</p>
+            <div class="bit-form-actions">
+                <button class="bit-btn bit-btn-primary" type="button" id="bitBtnRecargar">Recargar datos</button>
             </div>
         </div>
     </div>
@@ -1844,6 +2124,8 @@ Generalista de Recursos Humanos`;
             document.getElementById('app-cartas').style.display = 'none';
             document.getElementById('app-finiquitos').style.display = 'none';
             document.getElementById('app-tarjetas').style.display = 'none';
+            document.getElementById('app-bitacora').style.display = 'none';
+            document.getElementById('bitBottomNav').classList.remove('active');
             document.getElementById('btn-volver-menu').style.display = 'none';
             document.getElementById('header-title').textContent = 'Hub de Recursos Humanos';
             document.getElementById('header-subtitle').textContent = 'Selecciona una herramienta';
@@ -1857,6 +2139,8 @@ Generalista de Recursos Humanos`;
             document.getElementById('app-cartas').style.display = 'none';
             document.getElementById('app-finiquitos').style.display = 'none';
             document.getElementById('app-tarjetas').style.display = 'none';
+            document.getElementById('app-bitacora').style.display = 'none';
+            document.getElementById('bitBottomNav').classList.remove('active');
             if (nombre === 'cartas') {
                 document.getElementById('app-cartas').style.display = 'block';
                 document.getElementById('header-title').textContent = 'Generador de Cartas HR';
@@ -1872,6 +2156,13 @@ Generalista de Recursos Humanos`;
                 document.getElementById('header-title').textContent = 'Reposición de Tarjetas';
                 document.getElementById('header-subtitle').textContent = 'Banorte · Pluxee';
                 history.replaceState(null, '', '#tarjetas');
+            } else if (nombre === 'bitacora') {
+                document.getElementById('app-bitacora').style.display = 'block';
+                document.getElementById('bitBottomNav').classList.add('active');
+                document.getElementById('header-title').textContent = 'Bitácora y Agenda';
+                document.getElementById('header-subtitle').textContent = 'Registro diario · Pendientes · Calendario';
+                history.replaceState(null, '', '#bitacora');
+                bitLoadAll();
             }
         }
 
@@ -1882,11 +2173,14 @@ Generalista de Recursos Humanos`;
             document.getElementById('app-card-finiquitos').addEventListener('keydown', e => { if (e.key === 'Enter') abrirApp('finiquitos'); });
             document.getElementById('app-card-tarjetas').addEventListener('click', () => abrirApp('tarjetas'));
             document.getElementById('app-card-tarjetas').addEventListener('keydown', e => { if (e.key === 'Enter') abrirApp('tarjetas'); });
+            document.getElementById('app-card-bitacora').addEventListener('click', () => abrirApp('bitacora'));
+            document.getElementById('app-card-bitacora').addEventListener('keydown', e => { if (e.key === 'Enter') abrirApp('bitacora'); });
             document.getElementById('btn-volver-menu').addEventListener('click', mostrarMenuPrincipal);
 
             if (location.hash === '#cartas') abrirApp('cartas');
             else if (location.hash === '#finiquitos') abrirApp('finiquitos');
             else if (location.hash === '#tarjetas') abrirApp('tarjetas');
+            else if (location.hash === '#bitacora') abrirApp('bitacora');
         }
 
         // ====================================================================
@@ -2356,6 +2650,7 @@ Generalista de Recursos Humanos`;
             initNavegacionApps();
             initFiniquitos();
             initTarjetas();
+            initBitacora();
 
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
@@ -2423,6 +2718,421 @@ Generalista de Recursos Humanos`;
                 document.getElementById('bajas-mapping-modal').classList.remove('show');
                 pendingBajasUpload = null;
             });
+        }
+
+        // ====================================================================
+        // MÓDULO: BITÁCORA Y AGENDA
+        // (usa el mismo GAS_URL / Google Sheet que el resto del Hub)
+        // ====================================================================
+        const BIT_CATEGORIA_BADGE = { Junta: 'bit-badge-accent', Tarea: 'bit-badge-success', Admin: 'bit-badge-warning' };
+        const BIT_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        const BIT_MESES_ABR = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+        const BIT_DIAS_SEMANA = ['L','M','M','J','V','S','D'];
+
+        const bitState = {
+            today: bitToISODate(new Date()),
+            bitacora: [],
+            pendientes: [],
+            eventos: [],
+            filtroCategoria: 'todos',
+            calYear: new Date().getFullYear(),
+            calMonth: new Date().getMonth(),
+            calSelectedDate: null,
+            calAddMode: 'evento',
+            entradaCategoria: 'Junta',
+            loaded: false
+        };
+
+        function bitToISODate(d) {
+            const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+        function bitParseISODate(s) {
+            const [y, m, d] = s.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+        function bitFormatLargo(iso) {
+            const d = bitParseISODate(iso);
+            const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+            return `${dias[d.getDay()]} ${d.getDate()} de ${BIT_MESES[d.getMonth()]}`;
+        }
+        function bitFormatCorto(iso) {
+            const d = bitParseISODate(iso);
+            return `${d.getDate()} ${BIT_MESES_ABR[d.getMonth()].slice(0, 3).toLowerCase()}`;
+        }
+        function bitShowToast(msg) {
+            const t = document.getElementById('bitToast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(bitShowToast._t);
+            bitShowToast._t = setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
+        // ---- API (reutiliza GAS_URL y el formato {success,...} del backend) ----
+        async function bitApiGet(action, params = {}) {
+            const qs = new URLSearchParams({ action, ...params }).toString();
+            const res = await fetch(`${GAS_URL}?${qs}`);
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || 'Error desconocido');
+            return json;
+        }
+        async function bitApiPost(action, payload = {}) {
+            const res = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action, payload })
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || 'Error desconocido');
+            return json;
+        }
+
+        async function bitLoadAll() {
+            try {
+                const res = await bitApiGet('getAgenda', { fecha: bitState.today });
+                bitState.bitacora = res.bitacora || [];
+                bitState.pendientes = res.pendientes || [];
+                bitState.eventos = res.eventos || [];
+                bitState.loaded = true;
+                bitRenderBitacora();
+                bitRenderPendientes();
+                bitRenderCalendario();
+                bitRenderProximosEventos();
+            } catch (err) {
+                console.error(err);
+                bitShowToast('No se pudieron cargar los datos de la bitácora');
+            }
+        }
+
+        // ---- BITÁCORA ----
+        function bitRenderBitacora() {
+            document.getElementById('bitBitacoraTitle').textContent = `📓 Bitácora — ${bitFormatLargo(bitState.today)}`;
+            const list = document.getElementById('bitBitacoraList');
+            let entries = bitState.bitacora;
+            if (bitState.filtroCategoria !== 'todos') {
+                entries = entries.filter(e => e.categoria === bitState.filtroCategoria);
+            }
+            if (!entries.length) {
+                list.innerHTML = `<div class="bit-empty">Sin entradas todavía. Usa "+ Nueva" para registrar algo.</div>`;
+                return;
+            }
+            list.innerHTML = entries.map(e => `
+                <div class="bit-entry-row">
+                    <span class="bit-entry-time">${escapeHtml(e.hora || '')}</span>
+                    <div class="bit-entry-box">
+                        <button class="bit-entry-del" data-bit-del-bitacora="${e.id}" title="Eliminar">✕</button>
+                        <span class="bit-badge ${BIT_CATEGORIA_BADGE[e.categoria] || 'bit-badge-accent'}">${escapeHtml(e.categoria)}</span>
+                        <p class="bit-entry-text">${escapeHtml(e.descripcion)}</p>
+                        ${e.nota ? `<p class="bit-entry-note">${escapeHtml(e.nota)}</p>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function bitFormatCortoSafe(iso) { return iso ? bitFormatCorto(iso) : 'sin fecha'; }
+
+        // ---- PENDIENTES ----
+        function bitRenderPendientes() {
+            const pendientes = [...bitState.pendientes].sort((a, b) => {
+                if (a.completado !== b.completado) return a.completado ? 1 : -1;
+                return (a.fecha || '9999').localeCompare(b.fecha || '9999');
+            });
+            const abiertos = bitState.pendientes.filter(p => !p.completado).length;
+            document.getElementById('bitPendientesCount').textContent = `(${abiertos})`;
+            const list = document.getElementById('bitTaskList');
+            if (!pendientes.length) {
+                list.innerHTML = `<div class="bit-empty">Sin pendientes. Agrega uno abajo.</div>`;
+                return;
+            }
+            list.innerHTML = pendientes.map(p => {
+                const overdue = p.fecha && !p.completado && p.fecha < bitState.today;
+                return `
+                    <div class="bit-task-row">
+                        <input type="checkbox" data-bit-task-id="${p.id}" ${p.completado ? 'checked' : ''}>
+                        <span class="bit-task-label ${p.completado ? 'bit-task-done' : ''}">${escapeHtml(p.texto)}</span>
+                        <span class="bit-task-date ${overdue ? 'overdue' : ''}">${bitFormatCortoSafe(p.fecha)}</span>
+                    </div>`;
+            }).join('');
+        }
+
+        async function bitAddTask() {
+            const texto = document.getElementById('bitNewTaskText').value.trim();
+            const fecha = document.getElementById('bitNewTaskDate').value;
+            if (!texto) return;
+            try {
+                const res = await bitApiPost('addPendiente', { texto, fecha });
+                bitState.pendientes.push({ id: res.id, texto, fecha, completado: false, fecha_creacion: bitState.today });
+                bitRenderPendientes();
+                if (fecha) bitRenderCalendario();
+                document.getElementById('bitNewTaskText').value = '';
+                document.getElementById('bitNewTaskDate').value = '';
+            } catch (err) { bitShowToast('Error al agregar pendiente'); }
+        }
+
+        // ---- CALENDARIO ----
+        function bitDiasConPunto() {
+            const set = new Set();
+            bitState.eventos.forEach(e => e.fecha && set.add(e.fecha));
+            bitState.pendientes.forEach(p => p.fecha && !p.completado && set.add(p.fecha));
+            return set;
+        }
+
+        function bitRenderCalendario() {
+            const { calYear, calMonth } = bitState;
+            document.getElementById('bitCalMonthLabel').textContent = `📅 ${BIT_MESES[calMonth][0].toUpperCase()}${BIT_MESES[calMonth].slice(1)} ${calYear}`;
+
+            const firstOfMonth = new Date(calYear, calMonth, 1);
+            const startOffset = (firstOfMonth.getDay() + 6) % 7;
+            const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            const daysInPrevMonth = new Date(calYear, calMonth, 0).getDate();
+            const dotDates = bitDiasConPunto();
+
+            let html = BIT_DIAS_SEMANA.map(d => `<span class="bit-cal-day-label">${d}</span>`).join('');
+
+            for (let i = 0; i < startOffset; i++) {
+                html += `<span class="bit-cal-day bit-cal-muted">${daysInPrevMonth - startOffset + i + 1}</span>`;
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const iso = bitToISODate(new Date(calYear, calMonth, day));
+                const classes = ['bit-cal-day'];
+                if (iso === bitState.today) classes.push('bit-cal-today');
+                if (dotDates.has(iso)) classes.push('bit-cal-dot');
+                if (iso === bitState.calSelectedDate) classes.push('bit-cal-selected');
+                html += `<span class="${classes.join(' ')}" data-bit-date="${iso}">${day}</span>`;
+            }
+            const totalCells = startOffset + daysInMonth;
+            const trailing = (7 - (totalCells % 7)) % 7;
+            for (let i = 1; i <= trailing; i++) {
+                html += `<span class="bit-cal-day bit-cal-muted">${i}</span>`;
+            }
+
+            document.getElementById('bitCalGrid').innerHTML = html;
+        }
+
+        function bitSetCalMode(mode) {
+            bitState.calAddMode = mode;
+            document.getElementById('bitCalChipEvento').classList.toggle('active', mode === 'evento');
+            document.getElementById('bitCalChipPendiente').classList.toggle('active', mode === 'pendiente');
+            document.getElementById('bitCalEventTipo').style.display = mode === 'evento' ? 'block' : 'none';
+        }
+
+        function bitCloseCalForm() {
+            document.getElementById('bitCalAddForm').classList.remove('open');
+            document.getElementById('bitCalEventText').value = '';
+            bitState.calSelectedDate = null;
+            bitRenderCalendario();
+        }
+
+        // ---- PRÓXIMOS EVENTOS ----
+        function bitRenderProximosEventos() {
+            const list = document.getElementById('bitEventList');
+            const proximos = bitState.eventos
+                .filter(e => e.fecha >= bitState.today)
+                .sort((a, b) => a.fecha.localeCompare(b.fecha))
+                .slice(0, 8);
+            if (!proximos.length) {
+                list.innerHTML = `<div class="bit-empty">No hay eventos próximos.</div>`;
+                return;
+            }
+            list.innerHTML = proximos.map(e => {
+                const d = bitParseISODate(e.fecha);
+                return `
+                    <div class="bit-event-row">
+                        <div class="bit-event-date"><p class="bit-month">${BIT_MESES_ABR[d.getMonth()]}</p><p class="bit-day">${d.getDate()}</p></div>
+                        <div class="bit-event-body"><p class="bit-event-text">${escapeHtml(e.titulo)}</p></div>
+                        <button class="bit-event-del" data-bit-del-evento="${e.id}" title="Eliminar">✕</button>
+                    </div>`;
+            }).join('');
+        }
+
+        // ---- HISTORIAL ----
+        async function bitLoadHistorial(fecha) {
+            const list = document.getElementById('bitHistorialList');
+            list.innerHTML = `<div class="bit-empty">Cargando...</div>`;
+            try {
+                const res = await bitApiGet('getBitacora', { fecha });
+                const entries = res.data || [];
+                if (!entries.length) {
+                    list.innerHTML = `<div class="bit-empty">Sin entradas para ${bitFormatLargo(fecha)}.</div>`;
+                    return;
+                }
+                list.innerHTML = entries.map(e => `
+                    <div class="bit-entry-row">
+                        <span class="bit-entry-time">${escapeHtml(e.hora || '')}</span>
+                        <div class="bit-entry-box">
+                            <span class="bit-badge ${BIT_CATEGORIA_BADGE[e.categoria] || 'bit-badge-accent'}">${escapeHtml(e.categoria)}</span>
+                            <p class="bit-entry-text">${escapeHtml(e.descripcion)}</p>
+                            ${e.nota ? `<p class="bit-entry-note">${escapeHtml(e.nota)}</p>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = `<div class="bit-empty">Error al cargar.</div>`;
+            }
+        }
+
+        // ---- NAVEGACIÓN MÓVIL (barra inferior propia del módulo) ----
+        function bitSwitchMobileView(view) {
+            document.querySelectorAll('.bit-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.bitView === view));
+            document.querySelectorAll('[data-bit-section]').forEach(sec => {
+                sec.classList.toggle('active-mobile', sec.dataset.bitSection === view);
+            });
+        }
+
+        // ---- INIT / LISTENERS ----
+        function initBitacora() {
+            document.querySelector('[data-bit-section="bitacora"]').classList.add('active-mobile');
+
+            document.querySelectorAll('.bit-filter-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    document.querySelectorAll('.bit-filter-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    bitState.filtroCategoria = chip.dataset.bitFilter;
+                    bitRenderBitacora();
+                });
+            });
+
+            document.getElementById('bitBitacoraList').addEventListener('click', async (e) => {
+                const btn = e.target.closest('[data-bit-del-bitacora]');
+                if (!btn) return;
+                if (!confirm('¿Eliminar esta entrada?')) return;
+                try {
+                    await bitApiPost('deleteBitacora', { id: btn.dataset.bitDelBitacora });
+                    bitState.bitacora = bitState.bitacora.filter(x => x.id !== btn.dataset.bitDelBitacora);
+                    bitRenderBitacora();
+                } catch (err) { bitShowToast('Error al eliminar'); }
+            });
+
+            const entradaForm = document.getElementById('bitEntradaForm');
+            document.getElementById('bitBtnNuevaEntrada').addEventListener('click', () => {
+                entradaForm.classList.add('open');
+                const now = new Date();
+                document.getElementById('bitEntradaHora').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                document.getElementById('bitEntradaDescripcion').focus();
+            });
+            document.getElementById('bitCancelEntrada').addEventListener('click', () => {
+                entradaForm.classList.remove('open');
+                document.getElementById('bitEntradaDescripcion').value = '';
+                document.getElementById('bitEntradaNota').value = '';
+            });
+            entradaForm.querySelectorAll('.bit-type-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    entradaForm.querySelectorAll('.bit-type-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    bitState.entradaCategoria = chip.dataset.bitCat;
+                });
+            });
+            document.getElementById('bitSaveEntrada').addEventListener('click', async () => {
+                const hora = document.getElementById('bitEntradaHora').value;
+                const descripcion = document.getElementById('bitEntradaDescripcion').value.trim();
+                const nota = document.getElementById('bitEntradaNota').value.trim();
+                if (!hora || !descripcion) { bitShowToast('Falta hora o descripción'); return; }
+                try {
+                    const res = await bitApiPost('addBitacora', { fecha: bitState.today, hora, categoria: bitState.entradaCategoria, descripcion, nota });
+                    bitState.bitacora.push({ id: res.id, fecha: bitState.today, hora, categoria: bitState.entradaCategoria, descripcion, nota });
+                    bitRenderBitacora();
+                    entradaForm.classList.remove('open');
+                    document.getElementById('bitEntradaDescripcion').value = '';
+                    document.getElementById('bitEntradaNota').value = '';
+                    bitShowToast('Entrada guardada');
+                } catch (err) { bitShowToast('Error al guardar'); }
+            });
+
+            document.getElementById('bitTaskList').addEventListener('change', async (e) => {
+                const cb = e.target.closest('[data-bit-task-id]');
+                if (!cb) return;
+                const id = cb.dataset.bitTaskId;
+                const completado = cb.checked;
+                const p = bitState.pendientes.find(x => x.id === id);
+                if (p) p.completado = completado;
+                bitRenderPendientes();
+                try {
+                    await bitApiPost('togglePendiente', { id, completado });
+                } catch (err) { bitShowToast('Error al actualizar pendiente'); }
+            });
+            document.getElementById('bitBtnAddTask').addEventListener('click', bitAddTask);
+            document.getElementById('bitNewTaskText').addEventListener('keydown', e => { if (e.key === 'Enter') bitAddTask(); });
+
+            document.getElementById('bitCalPrev').addEventListener('click', () => {
+                bitState.calMonth--;
+                if (bitState.calMonth < 0) { bitState.calMonth = 11; bitState.calYear--; }
+                bitRenderCalendario();
+            });
+            document.getElementById('bitCalNext').addEventListener('click', () => {
+                bitState.calMonth++;
+                if (bitState.calMonth > 11) { bitState.calMonth = 0; bitState.calYear++; }
+                bitRenderCalendario();
+            });
+
+            const calAddForm = document.getElementById('bitCalAddForm');
+            document.getElementById('bitCalGrid').addEventListener('click', (e) => {
+                const cell = e.target.closest('[data-bit-date]');
+                if (!cell) return;
+                bitState.calSelectedDate = cell.dataset.bitDate;
+                bitRenderCalendario();
+                document.getElementById('bitCalSelectedDay').textContent = `Agregar a ${bitFormatLargo(cell.dataset.bitDate)}`;
+                calAddForm.classList.add('open');
+                document.getElementById('bitCalEventText').focus();
+            });
+            document.getElementById('bitCalChipEvento').addEventListener('click', () => bitSetCalMode('evento'));
+            document.getElementById('bitCalChipPendiente').addEventListener('click', () => bitSetCalMode('pendiente'));
+            document.getElementById('bitCalCancel').addEventListener('click', bitCloseCalForm);
+            document.getElementById('bitCalSave').addEventListener('click', async () => {
+                const texto = document.getElementById('bitCalEventText').value.trim();
+                const fecha = bitState.calSelectedDate;
+                if (!texto || !fecha) return;
+                try {
+                    if (bitState.calAddMode === 'evento') {
+                        const tipo = document.getElementById('bitCalEventTipo').value;
+                        const res = await bitApiPost('addEvento', { fecha, titulo: texto, tipo });
+                        bitState.eventos.push({ id: res.id, fecha, titulo: texto, tipo, notas: '' });
+                        bitRenderProximosEventos();
+                    } else {
+                        const res = await bitApiPost('addPendiente', { texto, fecha });
+                        bitState.pendientes.push({ id: res.id, texto, fecha, completado: false, fecha_creacion: bitState.today });
+                        bitRenderPendientes();
+                    }
+                    bitShowToast('Guardado');
+                    bitCloseCalForm();
+                } catch (err) { bitShowToast('Error al guardar'); }
+            });
+
+            document.getElementById('bitEventList').addEventListener('click', async (e) => {
+                const btn = e.target.closest('[data-bit-del-evento]');
+                if (!btn) return;
+                if (!confirm('¿Eliminar este evento?')) return;
+                try {
+                    await bitApiPost('deleteEvento', { id: btn.dataset.bitDelEvento });
+                    bitState.eventos = bitState.eventos.filter(x => x.id !== btn.dataset.bitDelEvento);
+                    bitRenderProximosEventos();
+                    bitRenderCalendario();
+                } catch (err) { bitShowToast('Error al eliminar'); }
+            });
+
+            document.querySelectorAll('.bit-nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => bitSwitchMobileView(btn.dataset.bitView));
+            });
+
+            document.getElementById('bitOpenHistorial').addEventListener('click', () => {
+                document.getElementById('bitHistorialFecha').value = bitState.today;
+                bitLoadHistorial(bitState.today);
+                document.getElementById('bitHistorialModal').classList.add('show');
+            });
+            document.getElementById('bitHistorialFecha').addEventListener('change', (e) => bitLoadHistorial(e.target.value));
+
+            document.getElementById('bitOpenAjustes').addEventListener('click', () => {
+                document.getElementById('bitAjustesModal').classList.add('show');
+            });
+            document.getElementById('bitBtnRecargar').addEventListener('click', () => { bitLoadAll(); bitShowToast('Recargando...'); });
+
+            document.querySelectorAll('[data-bit-close]').forEach(btn => {
+                btn.addEventListener('click', () => document.getElementById(btn.dataset.bitClose).classList.remove('show'));
+            });
+            document.querySelectorAll('.bit-modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('show'); });
+            });
+
+            bitSetCalMode('evento');
         }
 
         window.addEventListener('load', async () => {
