@@ -161,14 +161,20 @@ function doPost(e) {
       response = addBitacoraEntry(postData.payload || {});
     } else if (action === 'deleteBitacora') {
       response = deleteAgendaRow(SHEET_NAMES.BITACORA, (postData.payload || {}).id);
+    } else if (action === 'updateBitacora') {
+      response = updateBitacoraEntry((postData.payload || {}).id, postData.payload || {});
     } else if (action === 'addPendiente') {
       response = addPendienteEntry(postData.payload || {});
     } else if (action === 'togglePendiente') {
       response = togglePendienteEntry((postData.payload || {}).id, (postData.payload || {}).completado);
+    } else if (action === 'updatePendiente') {
+      response = updatePendienteEntry((postData.payload || {}).id, postData.payload || {});
     } else if (action === 'deletePendiente') {
       response = deleteAgendaRow(SHEET_NAMES.PENDIENTES, (postData.payload || {}).id);
     } else if (action === 'addEvento') {
       response = addEventoEntry(postData.payload || {});
+    } else if (action === 'updateEvento') {
+      response = updateEventoEntry((postData.payload || {}).id, postData.payload || {});
     } else if (action === 'deleteEvento') {
       response = deleteAgendaRow(SHEET_NAMES.EVENTOS, (postData.payload || {}).id);
 
@@ -353,6 +359,19 @@ function agendaFindRow(sheet, id) {
   return -1;
 }
 
+// Actualiza solo las columnas presentes en `fields` (por nombre de encabezado), deja el resto intacto
+function updateAgendaRow(sheet, id, fields) {
+  const row = agendaFindRow(sheet, id);
+  if (row === -1) return { success: false, error: 'No encontrado: ' + id };
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  headers.forEach((h, i) => {
+    if (Object.prototype.hasOwnProperty.call(fields, h)) {
+      sheet.getRange(row, i + 1).setValue(fields[h]);
+    }
+  });
+  return { success: true, id: id };
+}
+
 // ---- Bitácora ----
 function getBitacoraData(fecha) {
   const sheets = getAgendaSheets();
@@ -373,6 +392,18 @@ function addBitacoraEntry(p) {
     return { success: true, id: id };
   } catch (err) {
     return { success: false, error: 'Error al guardar bitácora: ' + err.toString() };
+  }
+}
+
+function updateBitacoraEntry(id, p) {
+  try {
+    if (!id) return { success: false, error: 'Falta id' };
+    const sheets = getAgendaSheets();
+    return updateAgendaRow(sheets.bitacora, id, {
+      fecha: p.fecha, hora: p.hora, categoria: p.categoria, descripcion: p.descripcion, nota: p.nota || ''
+    });
+  } catch (err) {
+    return { success: false, error: 'Error al actualizar bitácora: ' + err.toString() };
   }
 }
 
@@ -413,6 +444,16 @@ function togglePendienteEntry(id, completado) {
   }
 }
 
+function updatePendienteEntry(id, p) {
+  try {
+    if (!id) return { success: false, error: 'Falta id' };
+    const sheets = getAgendaSheets();
+    return updateAgendaRow(sheets.pendientes, id, { texto: p.texto, fecha: p.fecha || '' });
+  } catch (err) {
+    return { success: false, error: 'Error al actualizar pendiente: ' + err.toString() };
+  }
+}
+
 // ---- Eventos ----
 function getEventosData() {
   const sheets = getAgendaSheets();
@@ -431,6 +472,18 @@ function addEventoEntry(p) {
     return { success: true, id: id };
   } catch (err) {
     return { success: false, error: 'Error al guardar evento: ' + err.toString() };
+  }
+}
+
+function updateEventoEntry(id, p) {
+  try {
+    if (!id) return { success: false, error: 'Falta id' };
+    const sheets = getAgendaSheets();
+    return updateAgendaRow(sheets.eventos, id, {
+      fecha: p.fecha, titulo: p.titulo, tipo: p.tipo || 'junta', notas: p.notas || ''
+    });
+  } catch (err) {
+    return { success: false, error: 'Error al actualizar evento: ' + err.toString() };
   }
 }
 
