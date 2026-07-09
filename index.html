@@ -386,6 +386,30 @@
         .finiquito-chip.active { background: #2196F3; color: white; }
         .finiquito-chip.done::after { content: ' ✓'; }
 
+        /* Tarjetas: chips de colaboradores seleccionados */
+        .tj-emp-chip {
+            background: #f0f0f0;
+            color: #333;
+            font-size: 12px;
+            padding: 6px 8px 6px 12px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .tj-emp-chip button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            font-size: 15px;
+            line-height: 1;
+            padding: 2px;
+        }
+        .tj-emp-chip button:hover { color: #e53935; }
+        .tj-html-preview table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .tj-html-preview p { margin: 0 0 10px; font-size: 14px; color: #333; }
+
         /* Tablet */
         @media (max-width: 900px) {
             .content { padding: 1.25rem; }
@@ -448,6 +472,13 @@
                 </div>
                 <div class="app-card-title">Entrega de finiquitos</div>
                 <div class="app-card-desc">Sube el PDF, genera el convenio</div>
+            </div>
+            <div class="app-card" id="app-card-tarjetas" tabindex="0" role="button">
+                <div class="app-card-icon" style="background:#FCE9E7;">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#B23A2E" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+                </div>
+                <div class="app-card-title">Reposición de tarjetas</div>
+                <div class="app-card-desc">Banorte · Pluxee</div>
             </div>
         </div>
     </div>
@@ -613,6 +644,49 @@
                 <div class="btn-group">
                     <button class="btn btn-primary" type="button" id="btn-generar-convenio">📄 Generar Convenio (Word)</button>
                     <button class="btn" type="button" id="btn-finiquito-reset">Cargar otro PDF</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- APP: REPOSICION DE TARJETAS -->
+    <div id="app-tarjetas" class="container" style="display:none;">
+        <div class="content">
+
+            <div class="section">
+                <h2 class="section-title">1. Tipo de reposición</h2>
+                <div class="radio-group" style="display:flex; gap:1.5rem;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                        <input type="radio" name="tj-tipo" value="banorte" checked> Banorte
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                        <input type="radio" name="tj-tipo" value="pluxee"> Pluxee
+                    </label>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">2. Agrega colaboradores</h2>
+                <div class="search-box">
+                    <input type="text" id="tj-search" placeholder="Busca por nombre o ID..." autocomplete="off">
+                    <div id="tj-suggestions" class="suggestions"></div>
+                </div>
+                <div id="tj-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:0.85rem;"></div>
+            </div>
+
+            <div class="section" id="tj-preview-section" style="display:none;">
+                <h2 class="section-title">3. Vista previa y envío</h2>
+                <div class="info-card" style="margin-bottom:1rem;">
+                    <div class="info-label">Asunto</div>
+                    <div class="info-value" style="font-size:14px;" id="tj-asunto-preview">-</div>
+                </div>
+                <div id="tj-html-preview" class="tj-html-preview" style="border:1px solid #e0e0e0; border-radius:8px; padding:1rem; background:#fafafa;"></div>
+
+                <div class="btn-group">
+                    <button class="btn btn-primary" type="button" id="btn-tj-mailto">📧 Abrir en Outlook</button>
+                    <button class="btn" type="button" id="btn-tj-copiar">📋 Copiar tabla con color</button>
+                    <button class="btn" type="button" id="btn-tj-reset">Limpiar</button>
                 </div>
             </div>
 
@@ -1767,6 +1841,7 @@ Generalista de Recursos Humanos`;
             document.getElementById('menu-principal').style.display = 'block';
             document.getElementById('app-cartas').style.display = 'none';
             document.getElementById('app-finiquitos').style.display = 'none';
+            document.getElementById('app-tarjetas').style.display = 'none';
             document.getElementById('btn-volver-menu').style.display = 'none';
             document.getElementById('header-title').textContent = 'Hub de Recursos Humanos';
             document.getElementById('header-subtitle').textContent = 'Selecciona una herramienta';
@@ -1776,18 +1851,24 @@ Generalista de Recursos Humanos`;
         function abrirApp(nombre) {
             document.getElementById('menu-principal').style.display = 'none';
             document.getElementById('btn-volver-menu').style.display = 'inline-block';
+            document.getElementById('app-cartas').style.display = 'none';
+            document.getElementById('app-finiquitos').style.display = 'none';
+            document.getElementById('app-tarjetas').style.display = 'none';
             if (nombre === 'cartas') {
                 document.getElementById('app-cartas').style.display = 'block';
-                document.getElementById('app-finiquitos').style.display = 'none';
                 document.getElementById('header-title').textContent = 'Generador de Cartas HR';
                 document.getElementById('header-subtitle').textContent = 'Consulado · FONACOT · Recomendación';
                 history.replaceState(null, '', '#cartas');
             } else if (nombre === 'finiquitos') {
-                document.getElementById('app-cartas').style.display = 'none';
                 document.getElementById('app-finiquitos').style.display = 'block';
                 document.getElementById('header-title').textContent = 'Entrega de Finiquitos';
                 document.getElementById('header-subtitle').textContent = 'Convenio de terminación laboral';
                 history.replaceState(null, '', '#finiquitos');
+            } else if (nombre === 'tarjetas') {
+                document.getElementById('app-tarjetas').style.display = 'block';
+                document.getElementById('header-title').textContent = 'Reposición de Tarjetas';
+                document.getElementById('header-subtitle').textContent = 'Banorte · Pluxee';
+                history.replaceState(null, '', '#tarjetas');
             }
         }
 
@@ -1796,10 +1877,13 @@ Generalista de Recursos Humanos`;
             document.getElementById('app-card-cartas').addEventListener('keydown', e => { if (e.key === 'Enter') abrirApp('cartas'); });
             document.getElementById('app-card-finiquitos').addEventListener('click', () => abrirApp('finiquitos'));
             document.getElementById('app-card-finiquitos').addEventListener('keydown', e => { if (e.key === 'Enter') abrirApp('finiquitos'); });
+            document.getElementById('app-card-tarjetas').addEventListener('click', () => abrirApp('tarjetas'));
+            document.getElementById('app-card-tarjetas').addEventListener('keydown', e => { if (e.key === 'Enter') abrirApp('tarjetas'); });
             document.getElementById('btn-volver-menu').addEventListener('click', mostrarMenuPrincipal);
 
             if (location.hash === '#cartas') abrirApp('cartas');
             else if (location.hash === '#finiquitos') abrirApp('finiquitos');
+            else if (location.hash === '#tarjetas') abrirApp('tarjetas');
         }
 
         // ====================================================================
@@ -2096,9 +2180,177 @@ Generalista de Recursos Humanos`;
             if (!fechaConvenioInput.value) fechaConvenioInput.value = new Date().toISOString().split('T')[0];
         }
 
+        // ====================================================================
+        // REPOSICION DE TARJETAS
+        // ====================================================================
+        const TJ_DESTINATARIO = 'payroll-mexico@clarios.com';
+        const TJ_CC = 'abraham.varela@clarios.com';
+        let tjEmpleados = []; // { id, nombre }
+
+        function tjFilterEmployees() {
+            const input = document.getElementById('tj-search').value.toLowerCase().trim();
+            const suggestionsDiv = document.getElementById('tj-suggestions');
+
+            if (input.length < 1) {
+                suggestionsDiv.classList.remove('show');
+                return;
+            }
+
+            const yaAgregados = new Set(tjEmpleados.map(e => String(e.id)));
+            const filtered = hcData.filter(emp => {
+                const nombre = String(emp.nombre || '').toLowerCase();
+                const id = String(emp.id || '').toLowerCase();
+                return (nombre.includes(input) || id.includes(input)) && !yaAgregados.has(String(emp.id));
+            }).slice(0, 10);
+
+            if (filtered.length === 0) {
+                suggestionsDiv.innerHTML = '<div class="suggestion-item" style="color:#999;">Sin resultados</div>';
+                suggestionsDiv.classList.add('show');
+                return;
+            }
+
+            suggestionsDiv.innerHTML = '';
+            filtered.forEach(emp => {
+                const item = document.createElement('div');
+                item.className = 'suggestion-item';
+                item.textContent = `${emp.nombre} (ID: ${emp.id})`;
+                item.addEventListener('click', () => tjAddEmpleado(emp));
+                suggestionsDiv.appendChild(item);
+            });
+            suggestionsDiv.classList.add('show');
+        }
+
+        function tjAddEmpleado(emp) {
+            tjEmpleados.push({ id: emp.id, nombre: emp.nombre });
+            document.getElementById('tj-search').value = '';
+            document.getElementById('tj-suggestions').classList.remove('show');
+            tjRenderChips();
+            tjUpdatePreview();
+        }
+
+        function tjRemoveEmpleado(idx) {
+            tjEmpleados.splice(idx, 1);
+            tjRenderChips();
+            tjUpdatePreview();
+        }
+
+        function tjRenderChips() {
+            const cont = document.getElementById('tj-chips');
+            cont.innerHTML = '';
+            tjEmpleados.forEach((emp, idx) => {
+                const chip = document.createElement('div');
+                chip.className = 'tj-emp-chip';
+                const span = document.createElement('span');
+                span.textContent = `${emp.nombre} (${emp.id})`;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.innerHTML = '&times;';
+                btn.title = 'Quitar';
+                btn.addEventListener('click', () => tjRemoveEmpleado(idx));
+                chip.appendChild(span);
+                chip.appendChild(btn);
+                cont.appendChild(chip);
+            });
+        }
+
+        function tjGetTipo() {
+            const sel = document.querySelector('input[name="tj-tipo"]:checked');
+            return sel ? sel.value : 'banorte';
+        }
+
+        function tjBuildContent() {
+            const isBanorte = tjGetTipo() === 'banorte';
+            const asunto = isBanorte ? 'Planta Torreón | Reposición Banorte' : 'Planta Torreón | Reposición Pluxee';
+            const colorHeader = isBanorte ? '#C00000' : '#38A169';
+            const introLine = isBanorte
+                ? 'Solicito su soporte para la reposición de tarjetas de nómina (Banorte) de los siguientes colaboradores:'
+                : 'Solicito de su soporte para la reposición de tarjeta Pluxee de los siguientes colaboradores:';
+            const cierreQuedamos = !isBanorte;
+
+            // Texto plano, para mailto
+            let bodyPlano = 'Buena tarde,\n\n' + introLine + '\n\n';
+            bodyPlano += 'ID Empleado\tNombre Completo\n';
+            tjEmpleados.forEach(e => { bodyPlano += `${e.id}\t${e.nombre}\n`; });
+            bodyPlano += '\n' + (cierreQuedamos ? 'Quedamos atentos.\n' : '') + '-Saludos,';
+
+            // HTML con color, para copiar y pegar en Outlook
+            const filasHtml = tjEmpleados.map(e => `<tr><td style="border:1px solid #ddd; padding:6px 10px;">${e.id}</td><td style="border:1px solid #ddd; padding:6px 10px;">${e.nombre}</td></tr>`).join('');
+            const tablaHtml = `<table style="border-collapse:collapse; font-family:Calibri,Arial,sans-serif;"><tr><th style="background:${colorHeader}; color:#fff; border:1px solid #ddd; padding:6px 10px; text-align:left;">ID Empleado</th><th style="background:${colorHeader}; color:#fff; border:1px solid #ddd; padding:6px 10px; text-align:left;">Nombre Completo</th></tr>${filasHtml}</table>`;
+            const htmlCompleto = `<p>Buena tarde,</p><p>${introLine}</p>${tablaHtml}<p style="margin-top:14px;">${cierreQuedamos ? 'Quedamos atentos.<br>' : ''}-Saludos,</p>`;
+
+            return { asunto, bodyPlano, tablaHtml, htmlCompleto };
+        }
+
+        function tjUpdatePreview() {
+            const section = document.getElementById('tj-preview-section');
+            if (tjEmpleados.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = 'block';
+            const { asunto, htmlCompleto } = tjBuildContent();
+            document.getElementById('tj-asunto-preview').textContent = asunto;
+            document.getElementById('tj-html-preview').innerHTML = htmlCompleto;
+        }
+
+        function tjAbrirOutlook() {
+            if (tjEmpleados.length === 0) {
+                showAlert('Agrega al menos un colaborador', 'error');
+                return;
+            }
+            const { asunto, bodyPlano } = tjBuildContent();
+            const mailto = `mailto:${TJ_DESTINATARIO}?cc=${encodeURIComponent(TJ_CC)}&subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(bodyPlano)}`;
+            window.location.href = mailto;
+        }
+
+        async function tjCopiarContenido() {
+            if (tjEmpleados.length === 0) {
+                showAlert('Agrega al menos un colaborador', 'error');
+                return;
+            }
+            const { htmlCompleto } = tjBuildContent();
+            const textoPlano = document.getElementById('tj-html-preview').innerText;
+            try {
+                if (window.ClipboardItem) {
+                    const item = new ClipboardItem({
+                        'text/html': new Blob([htmlCompleto], { type: 'text/html' }),
+                        'text/plain': new Blob([textoPlano], { type: 'text/plain' })
+                    });
+                    await navigator.clipboard.write([item]);
+                } else {
+                    await navigator.clipboard.writeText(textoPlano);
+                }
+                showAlert('✅ Contenido copiado, pégalo en el cuerpo del correo', 'success');
+            } catch (e) {
+                showAlert('No se pudo copiar: ' + e.message, 'error');
+            }
+        }
+
+        function tjReset() {
+            tjEmpleados = [];
+            document.getElementById('tj-search').value = '';
+            tjRenderChips();
+            tjUpdatePreview();
+        }
+
+        function initTarjetas() {
+            document.getElementById('tj-search').addEventListener('input', tjFilterEmployees);
+            document.getElementById('tj-search').addEventListener('focus', tjFilterEmployees);
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#app-tarjetas .search-box')) {
+                    document.getElementById('tj-suggestions').classList.remove('show');
+                }
+            });
+            document.querySelectorAll('input[name="tj-tipo"]').forEach(r => r.addEventListener('change', tjUpdatePreview));
+            document.getElementById('btn-tj-mailto').addEventListener('click', tjAbrirOutlook);
+            document.getElementById('btn-tj-copiar').addEventListener('click', tjCopiarContenido);
+            document.getElementById('btn-tj-reset').addEventListener('click', tjReset);
+        }
+
         function attachEventListeners() {
             initNavegacionApps();
             initFiniquitos();
+            initTarjetas();
 
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.addEventListener('click', () => switchTab(btn.dataset.tab, btn));
