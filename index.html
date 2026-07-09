@@ -2272,8 +2272,11 @@ Generalista de Recursos Humanos`;
 
             // Texto plano, para mailto
             let bodyPlano = 'Buena tarde,\n\n' + introLine + '\n\n';
-            tjEmpleados.forEach(e => { bodyPlano += `${e.id}\n${e.nombre}\n\n`; });
-            bodyPlano += (cierreQuedamos ? 'Quedamos atentos.\n' : '') + '-Saludos,';
+            bodyPlano += 'ID Empleado:\n';
+            tjEmpleados.forEach(e => { bodyPlano += `    -    ${e.id}\n`; });
+            bodyPlano += '\nNombre Empleado:\n';
+            tjEmpleados.forEach(e => { bodyPlano += `    -    ${e.nombre}\n`; });
+            bodyPlano += '\n' + (cierreQuedamos ? 'Quedamos atentos.\n' : '') + '-Saludos,';
 
             // HTML con color, para copiar y pegar en Outlook
             const filasHtml = tjEmpleados.map(e => `<tr><td style="border:1px solid #ddd; padding:6px 10px;">${e.id}</td><td style="border:1px solid #ddd; padding:6px 10px;">${e.nombre}</td></tr>`).join('');
