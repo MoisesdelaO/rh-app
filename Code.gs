@@ -16,6 +16,13 @@ const SHEET_NAMES = {
 // Campos canónicos que maneja la app (deben coincidir con FIELD_SYNONYMS del front)
 const CANONICAL_FIELDS = ['id', 'nombre', 'fechaIngreso', 'puesto', 'imss', 'salarioDiario'];
 
+// Categorías por defecto del módulo Bitácora (se pueden editar desde Ajustes)
+const BIT_DEFAULT_CATEGORIAS = [
+  { nombre: 'Junta', color: '#2F80ED' },
+  { nombre: 'Tarea', color: '#10B981' },
+  { nombre: 'Admin', color: '#F59E0B' }
+];
+
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -61,6 +68,7 @@ function doGet(e) {
     if (action === 'getBitacora')   return jsonResponse(getBitacoraData(e.parameter.fecha));
     if (action === 'getPendientes') return jsonResponse(getPendientesData());
     if (action === 'getEventos')    return jsonResponse(getEventosData());
+    if (action === 'getBitCategorias') return jsonResponse(getBitCategorias());
     if (action === 'getAgenda') {
       // Abre las 3 hojas UNA sola vez y las reutiliza (antes se abrían 3 veces, una por cada getXData)
       const sheets = getAgendaSheets();
@@ -179,6 +187,8 @@ function doPost(e) {
       response = updateEventoEntry((postData.payload || {}).id, postData.payload || {});
     } else if (action === 'deleteEvento') {
       response = deleteAgendaRow(SHEET_NAMES.EVENTOS, (postData.payload || {}).id);
+    } else if (action === 'saveBitCategorias') {
+      response = saveBitCategorias(postData.payload || []);
 
     } else {
       response = { success: false, error: 'Acción no reconocida: ' + action };
@@ -517,5 +527,30 @@ function deleteAgendaRow(sheetName, id) {
     return { success: true, id: id, deleted: true };
   } catch (err) {
     return { success: false, error: 'Error al eliminar: ' + err.toString() };
+  }
+}
+
+// ---- Categorías de Bitácora (guardadas en AppConfig, mismo sheet que usa el resto del Hub) ----
+function getBitCategorias() {
+  try {
+    const raw = getConfigValue('bit_categorias');
+    if (!raw) return { success: true, data: BIT_DEFAULT_CATEGORIAS };
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.length) return { success: true, data: BIT_DEFAULT_CATEGORIAS };
+    return { success: true, data: parsed };
+  } catch (err) {
+    return { success: true, data: BIT_DEFAULT_CATEGORIAS };
+  }
+}
+
+function saveBitCategorias(categorias) {
+  try {
+    if (!Array.isArray(categorias) || !categorias.length) {
+      return { success: false, error: 'Debe haber al menos una categoría' };
+    }
+    setConfigValue('bit_categorias', JSON.stringify(categorias));
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: 'Error al guardar categorías: ' + err.toString() };
   }
 }
