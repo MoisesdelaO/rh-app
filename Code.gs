@@ -351,6 +351,14 @@ function formatAgendaDate(d) {
   return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 }
 
+// Google Sheets suele autoconvertir texto tipo "08:30" a un valor de Hora (Date) al guardarlo.
+// Esta función normaliza de vuelta a texto "HH:mm" sin importar cómo haya quedado almacenado.
+function formatAgendaHora(h) {
+  if (!h) return '';
+  if (typeof h === 'string') return h;
+  return Utilities.formatDate(h, Session.getScriptTimeZone(), 'HH:mm');
+}
+
 function agendaFindRow(sheet, id) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return -1;
@@ -380,6 +388,7 @@ function getBitacoraData(fecha, sheets) {
   sheets = sheets || getAgendaSheets();
   let rows = agendaSheetToObjects(sheets.bitacora).map(r => {
     r.fecha = formatAgendaDate(r.fecha);
+    r.hora = formatAgendaHora(r.hora);
     return r;
   });
   if (fecha) rows = rows.filter(r => r.fecha === fecha);
