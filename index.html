@@ -585,6 +585,7 @@
         #app-bitacora .bit-entry-del:hover { background:var(--bit-surface-2); color:var(--bit-danger-text); }
         #app-bitacora .bit-entry-edit:hover { background:var(--bit-surface-2); color:var(--sui-primary-1); }
         #app-bitacora .bit-empty { text-align:center; color:var(--bit-text-muted); font-size:12px; padding:24px 8px; }
+        #app-bitacora .bit-retry-link { background:none; border:none; color:var(--sui-primary-1); text-decoration:underline; cursor:pointer; font-size:12px; padding:0; font-family:inherit; font-weight:600; }
 
         #app-bitacora .bit-task-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--bit-border); font-size:13px; }
         #app-bitacora .bit-task-row:first-child { border-top:none; }
@@ -2958,9 +2959,10 @@ Generalista de Recursos Humanos`;
             } catch (err) {
                 console.error(err);
                 bitShowToast('No se pudieron cargar los datos de la bitácora');
-                bitacoraList.innerHTML = `<div class="bit-empty">Error al cargar.</div>`;
-                taskList.innerHTML = `<div class="bit-empty">Error al cargar.</div>`;
-                eventList.innerHTML = `<div class="bit-empty">Error al cargar.</div>`;
+                const errorHtml = `<div class="bit-empty">Error al cargar. <button class="bit-retry-link" type="button" data-bit-retry>Reintentar</button></div>`;
+                bitacoraList.innerHTML = errorHtml;
+                taskList.innerHTML = errorHtml;
+                eventList.innerHTML = errorHtml;
             }
         }
 
@@ -3509,6 +3511,10 @@ Generalista de Recursos Humanos`;
                 document.getElementById('bitAjustesModal').classList.add('show');
             });
             document.getElementById('bitBtnRecargar').addEventListener('click', () => { bitLoadAll(); bitShowToast('Recargando...'); });
+
+            document.getElementById('app-bitacora').addEventListener('click', (e) => {
+                if (e.target.closest('[data-bit-retry]')) bitLoadAll();
+            });
 
             document.querySelectorAll('[data-bit-close]').forEach(btn => {
                 btn.addEventListener('click', () => document.getElementById(btn.dataset.bitClose).classList.remove('show'));

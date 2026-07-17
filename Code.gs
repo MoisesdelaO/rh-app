@@ -62,11 +62,13 @@ function doGet(e) {
     if (action === 'getPendientes') return jsonResponse(getPendientesData());
     if (action === 'getEventos')    return jsonResponse(getEventosData());
     if (action === 'getAgenda') {
+      // Abre las 3 hojas UNA sola vez y las reutiliza (antes se abrían 3 veces, una por cada getXData)
+      const sheets = getAgendaSheets();
       return jsonResponse({
         success: true,
-        bitacora: getBitacoraData(e.parameter.fecha).data,
-        pendientes: getPendientesData().data,
-        eventos: getEventosData().data
+        bitacora: getBitacoraData(e.parameter.fecha, sheets).data,
+        pendientes: getPendientesData(sheets).data,
+        eventos: getEventosData(sheets).data
       });
     }
 
@@ -373,8 +375,9 @@ function updateAgendaRow(sheet, id, fields) {
 }
 
 // ---- Bitácora ----
-function getBitacoraData(fecha) {
-  const sheets = getAgendaSheets();
+// `sheets` es opcional: si ya tienes las hojas abiertas (ej. en getAgenda), pásalas para no reabrirlas.
+function getBitacoraData(fecha, sheets) {
+  sheets = sheets || getAgendaSheets();
   let rows = agendaSheetToObjects(sheets.bitacora).map(r => {
     r.fecha = formatAgendaDate(r.fecha);
     return r;
@@ -408,8 +411,8 @@ function updateBitacoraEntry(id, p) {
 }
 
 // ---- Pendientes ----
-function getPendientesData() {
-  const sheets = getAgendaSheets();
+function getPendientesData(sheets) {
+  sheets = sheets || getAgendaSheets();
   const rows = agendaSheetToObjects(sheets.pendientes).map(r => {
     r.fecha = formatAgendaDate(r.fecha);
     r.fecha_creacion = formatAgendaDate(r.fecha_creacion);
@@ -455,8 +458,8 @@ function updatePendienteEntry(id, p) {
 }
 
 // ---- Eventos ----
-function getEventosData() {
-  const sheets = getAgendaSheets();
+function getEventosData(sheets) {
+  sheets = sheets || getAgendaSheets();
   const rows = agendaSheetToObjects(sheets.eventos).map(r => {
     r.fecha = formatAgendaDate(r.fecha);
     return r;
