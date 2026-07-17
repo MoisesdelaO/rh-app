@@ -332,11 +332,22 @@ function testSetup() {
 // MÓDULO BITÁCORA Y AGENDA
 // ============================================================================
 
+// Agrega una columna al final si el sheet ya existía de antes y no la tiene (migración sin perder datos)
+function ensureColumn(sheet, colName) {
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headers.indexOf(colName) === -1) {
+    sheet.getRange(1, lastCol + 1).setValue(colName);
+  }
+}
+
 function getAgendaSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const pendientes = getOrCreateSheet(ss, SHEET_NAMES.PENDIENTES, ['id', 'texto', 'fecha', 'completado', 'fecha_creacion', 'notas']);
+  ensureColumn(pendientes, 'notas');
   return {
     bitacora:   getOrCreateSheet(ss, SHEET_NAMES.BITACORA,   ['id', 'fecha', 'hora', 'categoria', 'descripcion', 'nota']),
-    pendientes: getOrCreateSheet(ss, SHEET_NAMES.PENDIENTES, ['id', 'texto', 'fecha', 'completado', 'fecha_creacion']),
+    pendientes: pendientes,
     eventos:    getOrCreateSheet(ss, SHEET_NAMES.EVENTOS,    ['id', 'fecha', 'titulo', 'tipo', 'notas'])
   };
 }
@@ -445,7 +456,7 @@ function addPendienteEntry(p) {
   try {
     const sheets = getAgendaSheets();
     const id = Utilities.getUuid();
-    sheets.pendientes.appendRow([id, p.texto, p.fecha || '', false, formatAgendaDate(new Date())]);
+    sheets.pendientes.appendRow([id, p.texto, p.fecha || '', false, formatAgendaDate(new Date()), p.notas || '']);
     return { success: true, id: id };
   } catch (err) {
     return { success: false, error: 'Error al guardar pendiente: ' + err.toString() };
@@ -470,7 +481,7 @@ function updatePendienteEntry(id, p) {
   try {
     if (!id) return { success: false, error: 'Falta id' };
     const sheets = getAgendaSheets();
-    return updateAgendaRow(sheets.pendientes, id, { texto: p.texto, fecha: p.fecha || '' });
+    return updateAgendaRow(sheets.pendientes, id, { texto: p.texto, fecha: p.fecha || '', notas: p.notas || '' });
   } catch (err) {
     return { success: false, error: 'Error al actualizar pendiente: ' + err.toString() };
   }

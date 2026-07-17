@@ -643,8 +643,9 @@
         #app-bitacora .bit-event-edit, #app-bitacora .bit-event-del { border:none; background:transparent; color:var(--bit-text-muted); cursor:pointer; font-size:12px; padding:4px 6px; border-radius:6px; flex-shrink:0; }
         #app-bitacora .bit-event-edit:hover { background:var(--bit-surface-1); color:var(--sui-primary-1); }
         #app-bitacora .bit-event-del:hover { background:var(--bit-surface-1); color:var(--bit-danger-text); }
-        #app-bitacora .bit-event-row.bit-task-style { align-items:center; }
+        #app-bitacora .bit-event-row.bit-task-style { align-items:center; transition: opacity .5s ease, transform .5s ease, max-height .5s ease, padding .5s ease, margin .5s ease; max-height:80px; overflow:hidden; }
         #app-bitacora .bit-event-row.bit-task-style input[type="checkbox"] { width:18px; height:18px; flex-shrink:0; cursor:pointer; accent-color:var(--bit-accent-fill); }
+        #app-bitacora .bit-event-row.bit-task-style.bit-row-fading { opacity:0; transform:translateX(6px); max-height:0; padding-top:0; padding-bottom:0; margin:0; border-top-color:transparent; }
         #app-bitacora .bit-event-date.bit-nofecha { background:transparent; border:1px dashed var(--bit-border); }
         #app-bitacora .bit-event-date.bit-nofecha .bit-day { color:var(--bit-text-muted); font-weight:500; font-size:14px; }
         #app-bitacora .bit-event-text.bit-task-done { color:var(--bit-text-muted); text-decoration:line-through; }
@@ -1038,13 +1039,10 @@
                 <section class="bit-card bit-card-sm" data-bit-section="pendientes">
                     <div class="bit-card-header">
                         <p class="bit-card-title"><svg class="bit-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8 12 2.5 2.5L16 9"/></svg>Pendientes <span class="bit-card-subtitle" id="bitPendientesCount"></span></p>
+                        <button class="bit-btn" type="button" id="bitBtnNuevoPendiente">+ Nuevo</button>
                     </div>
                     <div id="bitTaskList"></div>
-                    <div class="bit-add-task-row">
-                        <input type="text" id="bitNewTaskText" placeholder="Nuevo pendiente...">
-                        <input type="date" id="bitNewTaskDate">
-                        <button class="bit-btn bit-btn-icon" type="button" id="bitBtnAddTask">+</button>
-                    </div>
+                    <button class="bit-retry-link" type="button" id="bitToggleCompletados" style="margin-top:8px; display:none;"></button>
                 </section>
 
                 <!-- PRÓXIMOS EVENTOS -->
@@ -1196,7 +1194,9 @@
             <label class="bit-field-label" for="bitTaskModalTexto">Texto</label>
             <input type="text" id="bitTaskModalTexto" style="width:100%; font-size:13px; padding:9px 11px; border:1px solid rgba(30,34,51,0.08); border-radius:var(--sui-radius-md); margin-bottom:14px; font-family:inherit;">
             <label class="bit-field-label" for="bitTaskModalFecha">Fecha (opcional)</label>
-            <input type="date" id="bitTaskModalFecha">
+            <input type="date" id="bitTaskModalFecha" style="margin-bottom:14px;">
+            <label class="bit-field-label" for="bitTaskModalNotas">Notas (opcional)</label>
+            <textarea id="bitTaskModalNotas" rows="2" style="width:100%; font-size:13px; padding:9px 11px; border:1px solid rgba(30,34,51,0.08); border-radius:var(--sui-radius-md); margin-bottom:14px; font-family:inherit; resize:vertical;"></textarea>
             <div class="bit-form-actions">
                 <button class="bit-btn" type="button" data-bit-close="bitTaskModal">Cancelar</button>
                 <button class="bit-btn bit-btn-primary" type="button" id="bitTaskModalSave">Guardar</button>
@@ -2991,6 +2991,7 @@ Generalista de Recursos Humanos`;
             editingBitacoraId: null,
             editingPendienteId: null,
             editingEventoId: null,
+            showCompletedTasks: false,
             loaded: false
         };
 
@@ -3179,53 +3180,50 @@ Generalista de Recursos Humanos`;
 
         // ---- PENDIENTES ----
         function bitRenderPendientes() {
-            const pendientes = [...bitState.pendientes].sort((a, b) => {
-                if (a.completado !== b.completado) return a.completado ? 1 : -1;
-                return (a.fecha || '9999').localeCompare(b.fecha || '9999');
-            });
-            const abiertos = bitState.pendientes.filter(p => !p.completado).length;
-            document.getElementById('bitPendientesCount').textContent = `(${abiertos})`;
+            const completados = bitState.pendientes.filter(p => p.completado);
+            const abiertos = bitState.pendientes.filter(p => !p.completado);
+            document.getElementById('bitPendientesCount').textContent = `(${abiertos.length})`;
+
+            const toggleBtn = document.getElementById('bitToggleCompletados');
+            if (completados.length) {
+                toggleBtn.style.display = 'inline-flex';
+                toggleBtn.textContent = bitState.showCompletedTasks ? 'Ocultar completados' : `Ver completados (${completados.length})`;
+            } else {
+                toggleBtn.style.display = 'none';
+            }
+
+            const visibles = [...abiertos].sort((a, b) => (a.fecha || '9999').localeCompare(b.fecha || '9999'));
+            if (bitState.showCompletedTasks) visibles.push(...completados);
+
             const list = document.getElementById('bitTaskList');
-            if (!pendientes.length) {
-                list.innerHTML = `<div class="bit-empty">Sin pendientes. Agrega uno abajo.</div>`;
+            if (!visibles.length) {
+                list.innerHTML = `<div class="bit-empty">Sin pendientes. Usa "+ Nuevo" para agregar uno.</div>`;
                 return;
             }
-            list.innerHTML = pendientes.map(p => {
-                const overdue = p.fecha && !p.completado && p.fecha < bitState.today;
-                const dateBox = p.fecha
-                    ? (() => { const d = bitParseISODate(p.fecha); return `<p class="bit-month">${BIT_MESES_ABR[d.getMonth()]}</p><p class="bit-day">${d.getDate()}</p>`; })()
-                    : `<p class="bit-day">—</p>`;
-                const pillColor = p.completado ? '#9AA0B4' : (overdue ? '#F43F5E' : BIT_TIPO_META.pendiente.color);
-                const pillLabel = p.completado ? 'Hecho' : (overdue ? 'Atrasado' : 'Pendiente');
-                return `
-                    <div class="bit-event-row bit-task-style">
-                        <input type="checkbox" data-bit-task-id="${p.id}" ${p.completado ? 'checked' : ''} aria-label="Marcar como completado">
-                        <div class="bit-event-date ${p.fecha ? '' : 'bit-nofecha'}">${dateBox}</div>
-                        <div class="bit-event-body">
-                            <span class="bit-tipo-pill" style="background:${pillColor}">${pillLabel}</span>
-                            <p class="bit-event-text ${p.completado ? 'bit-task-done' : ''}">${escapeHtml(p.texto)}</p>
-                        </div>
-                        <div class="bit-event-actions">
-                            <button class="bit-event-edit" data-bit-edit-pendiente="${p.id}" aria-label="Editar pendiente" title="Editar">✎</button>
-                            <button class="bit-event-del" data-bit-del-pendiente="${p.id}" aria-label="Eliminar pendiente" title="Eliminar">✕</button>
-                        </div>
-                    </div>`;
-            }).join('');
+            list.innerHTML = visibles.map(p => bitTaskRowHtml(p)).join('');
         }
 
-        async function bitAddTask() {
-            const texto = document.getElementById('bitNewTaskText').value.trim();
-            const fecha = document.getElementById('bitNewTaskDate').value;
-            if (!texto) return;
-            try {
-                const res = await bitApiPost('addPendiente', { texto, fecha });
-                bitState.pendientes.push({ id: res.id, texto, fecha, completado: false, fecha_creacion: bitState.today });
-                bitRenderPendientes();
-                bitRenderCalendario();
-                bitRenderDayAgenda();
-                document.getElementById('bitNewTaskText').value = '';
-                document.getElementById('bitNewTaskDate').value = '';
-            } catch (err) { bitShowToast('Error al agregar pendiente'); }
+        function bitTaskRowHtml(p) {
+            const overdue = p.fecha && !p.completado && p.fecha < bitState.today;
+            const dateBox = p.fecha
+                ? (() => { const d = bitParseISODate(p.fecha); return `<p class="bit-month">${BIT_MESES_ABR[d.getMonth()]}</p><p class="bit-day">${d.getDate()}</p>`; })()
+                : `<p class="bit-day">—</p>`;
+            const pillColor = p.completado ? '#9AA0B4' : (overdue ? '#F43F5E' : BIT_TIPO_META.pendiente.color);
+            const pillLabel = p.completado ? 'Hecho' : (overdue ? 'Atrasado' : 'Pendiente');
+            return `
+                <div class="bit-event-row bit-task-style" data-bit-task-row="${p.id}">
+                    <input type="checkbox" data-bit-task-id="${p.id}" ${p.completado ? 'checked' : ''} aria-label="Marcar como completado">
+                    <div class="bit-event-date ${p.fecha ? '' : 'bit-nofecha'}">${dateBox}</div>
+                    <div class="bit-event-body">
+                        <span class="bit-tipo-pill" style="background:${pillColor}">${pillLabel}</span>
+                        <p class="bit-event-text ${p.completado ? 'bit-task-done' : ''}">${escapeHtml(p.texto)}</p>
+                        ${p.notas ? `<p class="bit-event-notes">${escapeHtml(p.notas)}</p>` : ''}
+                    </div>
+                    <div class="bit-event-actions">
+                        <button class="bit-event-edit" data-bit-edit-pendiente="${p.id}" aria-label="Editar pendiente" title="Editar">✎</button>
+                        <button class="bit-event-del" data-bit-del-pendiente="${p.id}" aria-label="Eliminar pendiente" title="Eliminar">✕</button>
+                    </div>
+                </div>`;
         }
 
         function bitOpenTaskModal(id) {
@@ -3234,7 +3232,9 @@ Generalista de Recursos Humanos`;
             document.getElementById('bitTaskModalTitle').textContent = p ? 'Editar pendiente' : 'Nuevo pendiente';
             document.getElementById('bitTaskModalTexto').value = p ? p.texto : '';
             document.getElementById('bitTaskModalFecha').value = p ? (p.fecha || '') : bitState.viewDate;
+            document.getElementById('bitTaskModalNotas').value = p ? (p.notas || '') : '';
             document.getElementById('bitTaskModal').classList.add('show');
+            document.getElementById('bitTaskModalTexto').focus();
         }
 
         async function bitDeletePendiente(id) {
@@ -3537,30 +3537,44 @@ Generalista de Recursos Humanos`;
                 const completado = cb.checked;
                 const p = bitState.pendientes.find(x => x.id === id);
                 if (p) p.completado = completado;
-                bitRenderPendientes();
                 bitRenderCalendario();
                 bitRenderDayAgenda();
+                if (completado && !bitState.showCompletedTasks) {
+                    const row = document.querySelector(`[data-bit-task-row="${id}"]`);
+                    if (row) {
+                        row.classList.add('bit-row-fading');
+                        setTimeout(bitRenderPendientes, 900);
+                    } else {
+                        bitRenderPendientes();
+                    }
+                } else {
+                    bitRenderPendientes();
+                }
                 try {
                     await bitApiPost('togglePendiente', { id, completado });
                 } catch (err) { bitShowToast('Error al actualizar pendiente'); }
             });
-            document.getElementById('bitBtnAddTask').addEventListener('click', bitAddTask);
-            document.getElementById('bitNewTaskText').addEventListener('keydown', e => { if (e.key === 'Enter') bitAddTask(); });
+            document.getElementById('bitBtnNuevoPendiente').addEventListener('click', () => bitOpenTaskModal(null));
+            document.getElementById('bitToggleCompletados').addEventListener('click', () => {
+                bitState.showCompletedTasks = !bitState.showCompletedTasks;
+                bitRenderPendientes();
+            });
 
             document.getElementById('bitTaskModalSave').addEventListener('click', async () => {
                 const texto = document.getElementById('bitTaskModalTexto').value.trim();
                 const fecha = document.getElementById('bitTaskModalFecha').value;
+                const notas = document.getElementById('bitTaskModalNotas').value.trim();
                 if (!texto) { bitShowToast('Falta el texto'); return; }
                 try {
                     if (bitState.editingPendienteId) {
                         const id = bitState.editingPendienteId;
-                        await bitApiPost('updatePendiente', { id, texto, fecha });
+                        await bitApiPost('updatePendiente', { id, texto, fecha, notas });
                         const p = bitState.pendientes.find(x => x.id === id);
-                        if (p) Object.assign(p, { texto, fecha });
+                        if (p) Object.assign(p, { texto, fecha, notas });
                         bitShowToast('Pendiente actualizado');
                     } else {
-                        const res = await bitApiPost('addPendiente', { texto, fecha });
-                        bitState.pendientes.push({ id: res.id, texto, fecha, completado: false, fecha_creacion: bitState.today });
+                        const res = await bitApiPost('addPendiente', { texto, fecha, notas });
+                        bitState.pendientes.push({ id: res.id, texto, fecha, completado: false, fecha_creacion: bitState.today, notas });
                         bitShowToast('Pendiente guardado');
                     }
                     bitRenderPendientes();
